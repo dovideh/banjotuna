@@ -793,6 +793,167 @@
                 font-size: 22px;
             }
         }
+
+        /* ============================================
+           CHORD DIAGRAM STYLES
+           ============================================ */
+        .chord-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 15px;
+            background: white;
+            border: 2px solid var(--border-color);
+            margin-bottom: 20px;
+            align-items: flex-end;
+        }
+
+        .chord-control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .chord-control-group label {
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--text-secondary);
+        }
+
+        .key-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .key-btn {
+            padding: 8px 12px;
+            border: 2px solid var(--border-color);
+            background: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 4px;
+            transition: all 0.2s;
+            min-width: 45px;
+            text-align: center;
+        }
+
+        .key-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .key-btn.active {
+            background: var(--bg-dark);
+            color: white;
+            border-color: var(--bg-dark);
+        }
+
+        .chord-type-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .chord-type-btn {
+            padding: 6px 10px;
+            border: 2px solid var(--border-color);
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .chord-type-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .chord-type-btn.active {
+            background: var(--g-family);
+            color: white;
+            border-color: var(--g-family);
+        }
+
+        .chord-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+            padding: 10px;
+        }
+
+        .chord-diagram-container {
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .chord-diagram-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .chord-diagram-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .chord-notes-display {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .finger-toggle {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .finger-toggle label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .chord-info-box {
+            background: #f9f9f9;
+            border: 1px solid var(--border-color);
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+
+        .no-chord-message {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        @media print {
+            .chord-controls {
+                display: none;
+            }
+
+            .chord-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .chord-diagram-container {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+        }
     </style>
 </head>
 <body>
@@ -856,6 +1017,7 @@
         <div class="tabs no-print">
             <button class="tab active" data-tab="tunings">Tunings</button>
             <button class="tab" data-tab="fretboards">Fretboards</button>
+            <button class="tab" data-tab="chords">Chords</button>
             <button class="tab" data-tab="reference">Reference</button>
         </div>
 
@@ -903,6 +1065,57 @@
                 <div class="fretboard-display">
                     <div id="fretboardContainer"></div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Chords Tab -->
+        <div id="chords-tab" class="tab-content">
+            <div class="chord-info-box no-print">
+                <strong>CHORD DIAGRAMS:</strong>
+                Vertical lines = strings (5th on left to 1st on right) | Horizontal lines = frets<br>
+                &#9675; = Open string | &#10005; = Muted string | Circled numbers = finger positions<br>
+                Thick top line = nut | Numbers below strings show chord degrees (1=root, 3=third, 5=fifth)<br>
+                Root notes shown with filled circles for easy identification
+            </div>
+
+            <div class="chord-controls no-print">
+                <div class="chord-control-group">
+                    <label>Tuning</label>
+                    <select id="chordTuningSelect" style="padding: 8px; font-size: 14px; min-width: 150px;">
+                    </select>
+                </div>
+
+                <div class="chord-control-group">
+                    <label>Key</label>
+                    <div class="key-buttons" id="keyButtons">
+                        <!-- Keys populated by JS -->
+                    </div>
+                </div>
+
+                <div class="chord-control-group">
+                    <label>Chord Type</label>
+                    <div class="chord-type-buttons" id="chordTypeButtons">
+                        <!-- Chord types populated by JS -->
+                    </div>
+                </div>
+
+                <div class="chord-control-group">
+                    <label>Finger Notation</label>
+                    <div class="finger-toggle">
+                        <label>
+                            <input type="radio" name="fingerNotation" value="numbers" checked>
+                            1-2-3-4
+                        </label>
+                        <label>
+                            <input type="radio" name="fingerNotation" value="pima">
+                            PIMA
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div id="chordContainer" class="chord-grid">
+                <!-- Chord diagrams rendered here -->
             </div>
         </div>
 
@@ -1096,6 +1309,378 @@
             if (startIndex === -1) return openNote;
             const newIndex = (startIndex + fret) % 12;
             return CHROMATIC_SCALE[newIndex];
+        }
+
+        // ============================================
+        // CHORD DATA & FUNCTIONS
+        // ============================================
+
+        // 12 keys with display names (using slash for enharmonics)
+        const CHORD_KEYS = [
+            { root: 'C',  display: 'C' },
+            { root: 'C#', display: 'C#/Db' },
+            { root: 'D',  display: 'D' },
+            { root: 'D#', display: 'D#/Eb' },
+            { root: 'E',  display: 'E' },
+            { root: 'F',  display: 'F' },
+            { root: 'F#', display: 'F#/Gb' },
+            { root: 'G',  display: 'G' },
+            { root: 'G#', display: 'G#/Ab' },
+            { root: 'A',  display: 'A' },
+            { root: 'A#', display: 'A#/Bb' },
+            { root: 'B',  display: 'B' }
+        ];
+
+        // 8 chord types with intervals (semitones from root)
+        const CHORD_TYPES = {
+            'major': { symbol: '', name: 'Major', intervals: [0, 4, 7], degrees: ['1', '3', '5'] },
+            'minor': { symbol: 'm', name: 'Minor', intervals: [0, 3, 7], degrees: ['1', '♭3', '5'] },
+            'm7':    { symbol: 'm7', name: 'Minor 7', intervals: [0, 3, 7, 10], degrees: ['1', '♭3', '5', '♭7'] },
+            '6':     { symbol: '6', name: 'Sixth', intervals: [0, 4, 7, 9], degrees: ['1', '3', '5', '6'] },
+            '7':     { symbol: '7', name: 'Seventh', intervals: [0, 4, 7, 10], degrees: ['1', '3', '5', '♭7'] },
+            'dim':   { symbol: 'dim', name: 'Diminished', intervals: [0, 3, 6], degrees: ['1', '♭3', '♭5'] },
+            'sus4':  { symbol: 'sus4', name: 'Sus4', intervals: [0, 5, 7], degrees: ['1', '4', '5'] },
+            'aug':   { symbol: 'aug', name: 'Augmented', intervals: [0, 4, 8], degrees: ['1', '3', '#5'] }
+        };
+
+        // Finger notation mapping
+        const FINGER_NOTATION = {
+            numbers: { 1: '1', 2: '2', 3: '3', 4: '4', T: 'T' },
+            pima: { 1: 'I', 2: 'M', 3: 'A', 4: 'P', T: 'P' }
+        };
+
+        // Convert note name to pitch class (0-11)
+        function noteToPitchClass(note) {
+            const normalized = normalizeNote(note);
+            return CHROMATIC_SCALE.indexOf(normalized);
+        }
+
+        // Get chord pitch classes from root and type
+        function getChordPitchClasses(rootNote, chordType) {
+            const type = CHORD_TYPES[chordType];
+            if (!type) return [];
+
+            const rootPitch = noteToPitchClass(rootNote);
+            if (rootPitch === -1) return [];
+
+            return type.intervals.map(interval => (rootPitch + interval) % 12);
+        }
+
+        // Get all notes in a chord (as note names)
+        function getChordNotes(rootNote, chordType) {
+            const pitchClasses = getChordPitchClasses(rootNote, chordType);
+            return pitchClasses.map(pc => CHROMATIC_SCALE[pc]);
+        }
+
+        // Find chord voicing for 4-string banjo (excludes 5th drone string for low positions)
+        // For 5-string banjo, we only use the 4 main strings for chords (DGBD in Open G)
+        function findChordVoicing(tuningData, rootNote, chordType, maxFret = 12) {
+            const chordPitchClasses = getChordPitchClasses(rootNote, chordType);
+            if (chordPitchClasses.length === 0) return null;
+
+            const type = CHORD_TYPES[chordType];
+            const rootPitch = noteToPitchClass(rootNote);
+
+            // Get the 4 main strings (exclude 5th/drone string for 5-string banjo)
+            const allStrings = tuningData.strings;
+            const shortStringIdx = tuningData.shortStringIndex;
+
+            // For 5-string banjo, use strings 1-4 (indices 1-4), exclude index 0 (5th string)
+            // For 4-string banjo, use all strings
+            let mainStrings;
+            if (shortStringIdx === 0 && allStrings.length === 5) {
+                // 5-string banjo: use strings at indices 1,2,3,4 (4th,3rd,2nd,1st strings)
+                mainStrings = allStrings.slice(1);
+            } else {
+                mainStrings = allStrings;
+            }
+
+            const numStrings = mainStrings.length;
+            const stringPitchClasses = mainStrings.map(note => noteToPitchClass(note));
+
+            // Find all valid voicings using recursive backtracking
+            const results = [];
+            const maxReach = 4;
+            const maxFingers = 4;
+
+            function explore(stringIdx, currentVoicing, usedTones) {
+                const fingersUsed = currentVoicing.filter(v => v && v.fret > 0).length;
+                if (fingersUsed > maxFingers) return;
+
+                const frettedFrets = currentVoicing.filter(v => v && v.fret > 0).map(v => v.fret);
+                if (frettedFrets.length > 1) {
+                    const reach = Math.max(...frettedFrets) - Math.min(...frettedFrets);
+                    if (reach > maxReach) return;
+                }
+
+                if (stringIdx === numStrings) {
+                    if (usedTones.size === chordPitchClasses.length) {
+                        results.push([...currentVoicing]);
+                    }
+                    return;
+                }
+
+                const stringPitch = stringPitchClasses[stringIdx];
+
+                // Option 1: Mute this string
+                explore(stringIdx + 1, [...currentVoicing, null], new Set(usedTones));
+
+                // Try each fret position (0 = open, up to maxFret)
+                for (let fret = 0; fret <= maxFret; fret++) {
+                    const pitchAtFret = (stringPitch + fret) % 12;
+                    const toneIndex = chordPitchClasses.indexOf(pitchAtFret);
+
+                    if (toneIndex !== -1) {
+                        const newUsedTones = new Set(usedTones);
+                        newUsedTones.add(pitchAtFret);
+
+                        explore(stringIdx + 1, [...currentVoicing, {
+                            fret: fret,
+                            pitchClass: pitchAtFret,
+                            toneIndex: toneIndex,
+                            note: CHROMATIC_SCALE[pitchAtFret]
+                        }], newUsedTones);
+                    }
+                }
+            }
+
+            explore(0, [], new Set());
+
+            if (results.length === 0) return null;
+
+            // Score and sort voicings
+            function scoreVoicing(voicing) {
+                const sounding = voicing.filter(v => v !== null);
+                const fretted = sounding.filter(v => v.fret > 0);
+                const minFret = fretted.length > 0 ? Math.min(...fretted.map(v => v.fret)) : 0;
+                const maxFretUsed = fretted.length > 0 ? Math.max(...fretted.map(v => v.fret)) : 0;
+                const span = maxFretUsed - minFret;
+                const openCount = sounding.filter(v => v.fret === 0).length;
+                const soundingCount = sounding.length;
+                return minFret * 100 + span * 50 - openCount * 30 - soundingCount * 10;
+            }
+
+            results.sort((a, b) => scoreVoicing(a) - scoreVoicing(b));
+            const bestVoicing = results[0];
+
+            // Convert to position format for rendering
+            // Positions are ordered: string 4 (index 0), string 3, string 2, string 1 (index 3)
+            const positions = bestVoicing.map((pos, idx) => {
+                const stringNum = 4 - idx; // 4, 3, 2, 1
+
+                if (pos === null) {
+                    return {
+                        stringNum: stringNum,
+                        fret: null,
+                        muted: true,
+                        note: null,
+                        degree: null,
+                        isRoot: false
+                    };
+                }
+
+                const degree = type.degrees[pos.toneIndex];
+                const isRoot = pos.pitchClass === rootPitch;
+
+                return {
+                    stringNum: stringNum,
+                    fret: pos.fret,
+                    muted: false,
+                    note: pos.note,
+                    degree: degree,
+                    isRoot: isRoot
+                };
+            });
+
+            // Assign finger numbers based on fret position
+            // Finger 1 = lowest fret, then 2, 3, 4 in ascending order
+            assignFingers(positions);
+
+            // Determine base fret for display
+            const frettedPositions = positions.filter(p => p.fret > 0);
+            const minFret = frettedPositions.length > 0 ? Math.min(...frettedPositions.map(p => p.fret)) : 1;
+            const baseFret = minFret > 4 ? minFret : 1;
+
+            // Check for barre chord
+            const barre = detectBarre(positions);
+
+            // Get chord notes for display
+            const chordNotes = getChordNotes(rootNote, chordType);
+
+            return {
+                positions,
+                baseFret,
+                barre,
+                chordNotes: chordNotes.map(n => displayNote(n)),
+                numStrings: numStrings
+            };
+        }
+
+        function assignFingers(positions) {
+            // Get fretted positions sorted by fret (ascending), then by string number (descending)
+            // This ensures: lowest fret first, and at same fret, higher string numbers first
+            const fretted = positions
+                .filter(p => p.fret > 0)
+                .sort((a, b) => {
+                    if (a.fret !== b.fret) return a.fret - b.fret;
+                    return b.stringNum - a.stringNum; // Higher string number first at same fret
+                });
+
+            if (fretted.length === 0) return;
+
+            // Assign unique finger to each position in sequence
+            fretted.forEach((p, idx) => {
+                p.finger = Math.min(idx + 1, 4);
+            });
+        }
+
+        function detectBarre(positions) {
+            const fretGroups = {};
+            positions.forEach((p, idx) => {
+                if (p.fret > 0) {
+                    if (!fretGroups[p.fret]) fretGroups[p.fret] = [];
+                    fretGroups[p.fret].push({ pos: p, idx: idx });
+                }
+            });
+
+            for (const [fret, group] of Object.entries(fretGroups)) {
+                if (group.length >= 2) {
+                    // Check if they're on adjacent strings
+                    const stringNums = group.map(g => g.pos.stringNum).sort((a, b) => b - a);
+                    const minStr = Math.min(...stringNums);
+                    const maxStr = Math.max(...stringNums);
+
+                    if (maxStr - minStr <= 3) {
+                        return {
+                            fret: parseInt(fret),
+                            fromString: minStr,
+                            toString: maxStr
+                        };
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        // Generate SVG chord diagram for 4 main strings
+        function generateChordDiagramSVG(voicing, chordName, tuningName, fingerNotation = 'numbers') {
+            const width = 140;
+            const height = 200;
+            const marginLeft = 35;
+            const marginTop = 35;
+            const marginRight = 15;
+            const marginBottom = 25;
+
+            const positions = voicing.positions;
+            const numStrings = 4; // Always 4 main strings for chord diagrams
+            const numFrets = 6;
+            const baseFret = voicing.baseFret;
+
+            const stringSpacing = (width - marginLeft - marginRight) / (numStrings - 1);
+            const fretSpacing = (height - marginTop - marginBottom) / numFrets;
+
+            let svg = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`;
+
+            // Background
+            svg += `<rect width="${width}" height="${height}" fill="white"/>`;
+
+            // Nut (thick line at top) - only show if baseFret is 1
+            if (baseFret === 1) {
+                svg += `<rect x="${marginLeft - 3}" y="${marginTop - 3}" width="${(numStrings - 1) * stringSpacing + 6}" height="5" fill="#1a1a1a"/>`;
+            } else {
+                // Show fret number for higher positions
+                svg += `<text x="${marginLeft - 15}" y="${marginTop + fretSpacing / 2 + 4}" font-size="11" font-weight="bold" text-anchor="middle">${baseFret}fr</text>`;
+            }
+
+            // Fret lines
+            for (let i = 0; i <= numFrets; i++) {
+                const y = marginTop + i * fretSpacing;
+                svg += `<line x1="${marginLeft}" y1="${y}" x2="${marginLeft + (numStrings - 1) * stringSpacing}" y2="${y}" stroke="#333" stroke-width="${i === 0 ? 2 : 1}"/>`;
+            }
+
+            // String lines (left to right: string 4, 3, 2, 1)
+            for (let i = 0; i < numStrings; i++) {
+                const x = marginLeft + i * stringSpacing;
+                svg += `<line x1="${x}" y1="${marginTop}" x2="${x}" y2="${marginTop + numFrets * fretSpacing}" stroke="#333" stroke-width="1.5"/>`;
+            }
+
+            // String labels at top (4, 3, 2, 1 from left to right)
+            for (let i = 0; i < numStrings; i++) {
+                const x = marginLeft + i * stringSpacing;
+                const stringNum = 4 - i;
+                svg += `<text x="${x}" y="${marginTop - 20}" font-size="9" text-anchor="middle" fill="#666">${stringNum}</text>`;
+            }
+
+            // 5th string box (same size cell as main grid, flush with it, at fret 5-6)
+            // Only show if baseFret is 1 (low position chords)
+            if (baseFret === 1) {
+                const fret5Y = marginTop + 5 * fretSpacing; // Fret 5 wire
+                const fret6Y = marginTop + 6 * fretSpacing; // Fret 6 wire
+                const boxLeft = marginLeft - stringSpacing; // One cell width to the left
+
+                // Draw the box - same size as grid cells, flush with main grid
+                // Top line (fret 5)
+                svg += `<line x1="${boxLeft}" y1="${fret5Y}" x2="${marginLeft}" y2="${fret5Y}" stroke="#333" stroke-width="1"/>`;
+                // Bottom line (fret 6)
+                svg += `<line x1="${boxLeft}" y1="${fret6Y}" x2="${marginLeft}" y2="${fret6Y}" stroke="#333" stroke-width="1"/>`;
+                // Left edge
+                svg += `<line x1="${boxLeft}" y1="${fret5Y}" x2="${boxLeft}" y2="${fret6Y}" stroke="#333" stroke-width="1"/>`;
+
+                // Label for 5th string (centered in the box)
+                const boxCenterX = boxLeft + stringSpacing / 2;
+                svg += `<text x="${boxCenterX}" y="${fret5Y - 8}" font-size="8" text-anchor="middle" fill="#666">5</text>`;
+            }
+
+            // Finger positions and open/muted indicators
+            positions.forEach((pos, idx) => {
+                // idx 0 = string 4 (leftmost), idx 3 = string 1 (rightmost)
+                const x = marginLeft + idx * stringSpacing;
+
+                if (pos.muted) {
+                    // X for muted string
+                    svg += `<text x="${x}" y="${marginTop - 8}" font-size="12" font-weight="bold" text-anchor="middle" fill="#666">✕</text>`;
+                } else if (pos.fret === 0) {
+                    // Open string circle
+                    svg += `<circle cx="${x}" cy="${marginTop - 10}" r="5" fill="none" stroke="#333" stroke-width="1.5"/>`;
+                } else {
+                    // Fretted position
+                    const displayFret = pos.fret - baseFret + 1;
+                    if (displayFret >= 1 && displayFret <= numFrets) {
+                        const y = marginTop + (displayFret - 0.5) * fretSpacing;
+
+                        // Root notes get filled circle
+                        if (pos.isRoot) {
+                            svg += `<circle cx="${x}" cy="${y}" r="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="1.5"/>`;
+                            if (pos.finger) {
+                                const fingerLabel = FINGER_NOTATION[fingerNotation][pos.finger] || pos.finger;
+                                svg += `<text x="${x}" y="${y + 3}" font-size="10" font-weight="bold" text-anchor="middle" fill="white">${fingerLabel}</text>`;
+                            }
+                        } else {
+                            svg += `<circle cx="${x}" cy="${y}" r="9" fill="white" stroke="#1a1a1a" stroke-width="1.5"/>`;
+                            if (pos.finger) {
+                                const fingerLabel = FINGER_NOTATION[fingerNotation][pos.finger] || pos.finger;
+                                svg += `<text x="${x}" y="${y + 3}" font-size="10" font-weight="bold" text-anchor="middle">${fingerLabel}</text>`;
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Degree labels below strings
+            positions.forEach((pos, idx) => {
+                const x = marginLeft + idx * stringSpacing;
+                const y = marginTop + numFrets * fretSpacing + 15;
+
+                if (pos.degree && !pos.muted) {
+                    svg += `<text x="${x}" y="${y}" font-size="9" text-anchor="middle" fill="#666">${pos.degree}</text>`;
+                } else if (pos.muted) {
+                    svg += `<text x="${x}" y="${y}" font-size="9" text-anchor="middle" fill="#999">-</text>`;
+                }
+            });
+
+            svg += '</svg>';
+            return svg;
         }
 
         // ============================================
@@ -1414,7 +1999,12 @@
             showNotes: true,
             selectedFretboardTuning: 'Open G',
             fretboardFamilyFilter: 'all',
-            useSolfege: false
+            useSolfege: false,
+            // Chord tab state
+            chordTuning: 'Open G',
+            chordKey: 'G',
+            chordTypeFilter: 'all',
+            fingerNotation: 'numbers'
         };
 
         function loadState() {
@@ -1978,13 +2568,18 @@
                 showNotes: true,
                 selectedFretboardTuning: 'Open G',
                 fretboardFamilyFilter: 'all',
-                useSolfege: false
+                useSolfege: false,
+                chordTuning: 'Open G',
+                chordKey: 'G',
+                chordTypeFilter: 'all',
+                fingerNotation: 'numbers'
             };
             saveState();
             applyStateToUI();
             populateTuningList();
             renderTunings();
             renderFretboard();
+            initChordTab();
         }
 
         function applyStateToUI() {
@@ -1994,6 +2589,181 @@
             document.getElementById('showNotesToggle').checked = state.showNotes;
             document.getElementById('solfegeToggle').checked = state.useSolfege || false;
             document.getElementById('fretboardFamilyFilter').value = state.fretboardFamilyFilter || 'all';
+
+            // Chord tab UI
+            const chordTuningSelect = document.getElementById('chordTuningSelect');
+            if (chordTuningSelect) {
+                chordTuningSelect.value = state.chordTuning || 'Open G';
+            }
+
+            // Finger notation radio
+            const fingerRadio = document.querySelector(`input[name="fingerNotation"][value="${state.fingerNotation || 'numbers'}"]`);
+            if (fingerRadio) {
+                fingerRadio.checked = true;
+            }
+        }
+
+        // ============================================
+        // CHORD TAB FUNCTIONS
+        // ============================================
+        function populateChordTuningSelect() {
+            const select = document.getElementById('chordTuningSelect');
+            if (!select) return;
+
+            select.innerHTML = '';
+
+            // Group tunings by family
+            const families = {
+                'g-family': 'G-Based',
+                'c-family': 'C-Based',
+                'd-family': 'D-Based',
+                'other-family': 'Other (4-String)'
+            };
+
+            for (const [familyKey, familyName] of Object.entries(families)) {
+                const group = document.createElement('optgroup');
+                group.label = familyName;
+
+                for (const [name, data] of Object.entries(TUNINGS_DATA)) {
+                    if (data.family === familyKey) {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.textContent = name;
+                        if (name === state.chordTuning) {
+                            option.selected = true;
+                        }
+                        group.appendChild(option);
+                    }
+                }
+
+                select.appendChild(group);
+            }
+        }
+
+        function populateKeyButtons() {
+            const container = document.getElementById('keyButtons');
+            if (!container) return;
+
+            container.innerHTML = CHORD_KEYS.map(key => {
+                const isActive = state.chordKey === key.root ? 'active' : '';
+                return `<button class="key-btn ${isActive}" data-key="${key.root}">${key.display}</button>`;
+            }).join('');
+
+            // Add click handlers
+            container.querySelectorAll('.key-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    state.chordKey = btn.dataset.key;
+                    saveState();
+                    populateKeyButtons();
+                    renderChords();
+                });
+            });
+        }
+
+        function populateChordTypeButtons() {
+            const container = document.getElementById('chordTypeButtons');
+            if (!container) return;
+
+            const typeEntries = Object.entries(CHORD_TYPES);
+            container.innerHTML = `
+                <button class="chord-type-btn ${state.chordTypeFilter === 'all' ? 'active' : ''}" data-type="all">All</button>
+                ${typeEntries.map(([key, type]) => {
+                    const isActive = state.chordTypeFilter === key ? 'active' : '';
+                    return `<button class="chord-type-btn ${isActive}" data-type="${key}">${type.name}</button>`;
+                }).join('')}
+            `;
+
+            // Add click handlers
+            container.querySelectorAll('.chord-type-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    state.chordTypeFilter = btn.dataset.type;
+                    saveState();
+                    populateChordTypeButtons();
+                    renderChords();
+                });
+            });
+        }
+
+        function renderChords() {
+            const container = document.getElementById('chordContainer');
+            if (!container) return;
+
+            const tuningData = TUNINGS_DATA[state.chordTuning];
+            if (!tuningData) {
+                container.innerHTML = '<div class="no-chord-message">Select a tuning to view chords</div>';
+                return;
+            }
+
+            const fingerNotation = document.querySelector('input[name="fingerNotation"]:checked')?.value || 'numbers';
+
+            // Determine which chord types to show
+            const typesToShow = state.chordTypeFilter === 'all'
+                ? Object.keys(CHORD_TYPES)
+                : [state.chordTypeFilter];
+
+            let html = '';
+
+            typesToShow.forEach(chordType => {
+                const type = CHORD_TYPES[chordType];
+                const chordName = `${state.chordKey}${type.symbol}`;
+
+                // Find voicing for this chord
+                const voicing = findChordVoicing(tuningData, state.chordKey, chordType, 12);
+
+                if (voicing) {
+                    const svg = generateChordDiagramSVG(voicing, chordName, state.chordTuning, fingerNotation);
+
+                    html += `
+                        <div class="chord-diagram-container">
+                            <div class="chord-diagram-title">${displayNote(state.chordKey)}${type.symbol}</div>
+                            <div class="chord-diagram-subtitle">${type.name}</div>
+                            ${svg}
+                            <div class="chord-notes-display">
+                                Notes: ${voicing.chordNotes.join(' - ')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="chord-diagram-container">
+                            <div class="chord-diagram-title">${displayNote(state.chordKey)}${type.symbol}</div>
+                            <div class="chord-diagram-subtitle">${type.name}</div>
+                            <div class="no-chord-message">Voicing not available for this tuning</div>
+                        </div>
+                    `;
+                }
+            });
+
+            container.innerHTML = html;
+        }
+
+        function setupChordEventListeners() {
+            // Tuning selector
+            const tuningSelect = document.getElementById('chordTuningSelect');
+            if (tuningSelect) {
+                tuningSelect.addEventListener('change', (e) => {
+                    state.chordTuning = e.target.value;
+                    saveState();
+                    renderChords();
+                });
+            }
+
+            // Finger notation toggle
+            document.querySelectorAll('input[name="fingerNotation"]').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    state.fingerNotation = document.querySelector('input[name="fingerNotation"]:checked')?.value || 'numbers';
+                    saveState();
+                    renderChords();
+                });
+            });
+        }
+
+        function initChordTab() {
+            populateChordTuningSelect();
+            populateKeyButtons();
+            populateChordTypeButtons();
+            setupChordEventListeners();
+            renderChords();
         }
 
         // ============================================
@@ -2006,6 +2776,7 @@
             setupEventListeners();
             renderTunings();
             renderFretboard();
+            initChordTab();
         }
 
         document.addEventListener('DOMContentLoaded', init);
