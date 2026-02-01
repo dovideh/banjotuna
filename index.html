@@ -875,6 +875,124 @@
             border-color: var(--g-family);
         }
 
+        .view-mode-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .view-mode-btn {
+            padding: 6px 12px;
+            border: 2px solid var(--border-color);
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .view-mode-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .view-mode-btn.active {
+            background: var(--d-family);
+            color: white;
+            border-color: var(--d-family);
+        }
+
+        /* All Keys Grid View */
+        .chord-keys-grid-container {
+            overflow-x: auto;
+            padding: 10px;
+        }
+
+        .chord-keys-grid {
+            border-collapse: collapse;
+            width: 100%;
+            background: white;
+            border: 2px solid var(--border-color);
+        }
+
+        .chord-keys-grid th,
+        .chord-keys-grid td {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            text-align: center;
+            vertical-align: top;
+        }
+
+        .chord-keys-grid th {
+            background: var(--bg-dark);
+            color: white;
+            font-size: 13px;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .chord-keys-grid th.key-header {
+            background: var(--g-family);
+            min-width: 60px;
+        }
+
+        .chord-keys-grid td.key-cell {
+            background: var(--g-family-light);
+            font-weight: bold;
+            font-size: 16px;
+            vertical-align: middle;
+            min-width: 50px;
+        }
+
+        .chord-keys-grid .grid-chord-cell {
+            min-width: 150px;
+            padding: 5px;
+        }
+
+        .chord-keys-grid .grid-chord-diagram {
+            background: #fafafa;
+            border-radius: 4px;
+            padding: 5px;
+        }
+
+        .chord-keys-grid .grid-chord-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .chord-keys-grid .grid-chord-notes {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 3px;
+        }
+
+        .chord-keys-grid .grid-no-voicing {
+            color: var(--text-muted);
+            font-style: italic;
+            font-size: 11px;
+            padding: 20px 5px;
+        }
+
+        @media print {
+            .chord-keys-grid-container {
+                overflow: visible;
+            }
+
+            .chord-keys-grid {
+                font-size: 10px;
+            }
+
+            .chord-keys-grid th,
+            .chord-keys-grid td {
+                padding: 4px;
+            }
+
+            .chord-keys-grid .grid-chord-cell {
+                min-width: 100px;
+            }
+        }
+
         .chord-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -1086,6 +1204,14 @@
                 </div>
 
                 <div class="chord-control-group">
+                    <label>View Mode</label>
+                    <div class="view-mode-buttons" id="viewModeButtons">
+                        <button class="view-mode-btn active" data-mode="single">Single Key</button>
+                        <button class="view-mode-btn" data-mode="grid">All Keys Grid</button>
+                    </div>
+                </div>
+
+                <div class="chord-control-group" id="keyButtonsContainer">
                     <label>Key</label>
                     <div class="key-buttons" id="keyButtons">
                         <!-- Keys populated by JS -->
@@ -2004,7 +2130,8 @@
             chordTuning: 'Open G',
             chordKey: 'G',
             chordTypeFilter: 'all',
-            fingerNotation: 'numbers'
+            fingerNotation: 'numbers',
+            chordViewMode: 'single'  // 'single' or 'grid' (all keys)
         };
 
         function loadState() {
@@ -2572,7 +2699,8 @@
                 chordTuning: 'Open G',
                 chordKey: 'G',
                 chordTypeFilter: 'all',
-                fingerNotation: 'numbers'
+                fingerNotation: 'numbers',
+                chordViewMode: 'single'
             };
             saveState();
             applyStateToUI();
@@ -2684,6 +2812,35 @@
             });
         }
 
+        function populateViewModeButtons() {
+            const container = document.getElementById('viewModeButtons');
+            if (!container) return;
+
+            container.innerHTML = `
+                <button class="view-mode-btn ${state.chordViewMode === 'single' ? 'active' : ''}" data-mode="single">Single Key</button>
+                <button class="view-mode-btn ${state.chordViewMode === 'grid' ? 'active' : ''}" data-mode="grid">All Keys Grid</button>
+            `;
+
+            // Add click handlers
+            container.querySelectorAll('.view-mode-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    state.chordViewMode = btn.dataset.mode;
+                    saveState();
+                    populateViewModeButtons();
+                    updateKeyButtonsVisibility();
+                    renderChords();
+                });
+            });
+        }
+
+        function updateKeyButtonsVisibility() {
+            const keyButtonsContainer = document.getElementById('keyButtonsContainer');
+            if (keyButtonsContainer) {
+                // Hide key buttons in grid mode (since all keys are shown)
+                keyButtonsContainer.style.display = state.chordViewMode === 'grid' ? 'none' : 'flex';
+            }
+        }
+
         function renderChords() {
             const container = document.getElementById('chordContainer');
             if (!container) return;
@@ -2696,6 +2853,15 @@
 
             const fingerNotation = document.querySelector('input[name="fingerNotation"]:checked')?.value || 'numbers';
 
+            // Check view mode
+            if (state.chordViewMode === 'grid') {
+                renderChordsGrid(container, tuningData, fingerNotation);
+            } else {
+                renderChordsSingle(container, tuningData, fingerNotation);
+            }
+        }
+
+        function renderChordsSingle(container, tuningData, fingerNotation) {
             // Determine which chord types to show
             const typesToShow = state.chordTypeFilter === 'all'
                 ? Object.keys(CHORD_TYPES)
@@ -2734,7 +2900,63 @@
                 }
             });
 
+            container.className = 'chord-grid';
             container.innerHTML = html;
+        }
+
+        function renderChordsGrid(container, tuningData, fingerNotation) {
+            // Determine which chord types to show as columns
+            const typesToShow = state.chordTypeFilter === 'all'
+                ? Object.keys(CHORD_TYPES)
+                : [state.chordTypeFilter];
+
+            // Build table header with chord types
+            let headerHtml = '<tr><th class="key-header">Key</th>';
+            typesToShow.forEach(chordType => {
+                const type = CHORD_TYPES[chordType];
+                headerHtml += `<th>${type.name}</th>`;
+            });
+            headerHtml += '</tr>';
+
+            // Build table rows for each key
+            let rowsHtml = '';
+            CHORD_KEYS.forEach(key => {
+                rowsHtml += `<tr><td class="key-cell">${key.display}</td>`;
+
+                typesToShow.forEach(chordType => {
+                    const type = CHORD_TYPES[chordType];
+                    const voicing = findChordVoicing(tuningData, key.root, chordType, 12);
+
+                    if (voicing) {
+                        const svg = generateChordDiagramSVG(voicing, `${key.root}${type.symbol}`, state.chordTuning, fingerNotation);
+                        rowsHtml += `
+                            <td class="grid-chord-cell">
+                                <div class="grid-chord-diagram">
+                                    <div class="grid-chord-title">${displayNote(key.root)}${type.symbol}</div>
+                                    ${svg}
+                                    <div class="grid-chord-notes">${voicing.chordNotes.join(' - ')}</div>
+                                </div>
+                            </td>
+                        `;
+                    } else {
+                        rowsHtml += `
+                            <td class="grid-chord-cell">
+                                <div class="grid-no-voicing">Not available</div>
+                            </td>
+                        `;
+                    }
+                });
+
+                rowsHtml += '</tr>';
+            });
+
+            container.className = 'chord-keys-grid-container';
+            container.innerHTML = `
+                <table class="chord-keys-grid">
+                    <thead>${headerHtml}</thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+            `;
         }
 
         function setupChordEventListeners() {
@@ -2760,9 +2982,11 @@
 
         function initChordTab() {
             populateChordTuningSelect();
+            populateViewModeButtons();
             populateKeyButtons();
             populateChordTypeButtons();
             setupChordEventListeners();
+            updateKeyButtonsVisibility();
             renderChords();
         }
 
