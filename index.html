@@ -1544,6 +1544,20 @@
             const shortStringIdx = tuning.shortStringIndex;
             const shortStringStart = tuning.shortStringStartFret;
 
+            // Determine which strings should be lowercase (first occurrence of duplicate notes)
+            // e.g., for tuning with notes F C F A C, the first F and first C should be lowercase: f c F A C
+            const lowercaseIndices = new Set();
+            const seenNotes = new Map(); // normalized note -> first index
+            for (let i = 0; i < strings.length; i++) {
+                const normalized = normalizeNote(strings[i]).toUpperCase();
+                if (!seenNotes.has(normalized)) {
+                    seenNotes.set(normalized, i);
+                } else {
+                    // This note has appeared before, mark the first occurrence as lowercase
+                    lowercaseIndices.add(seenNotes.get(normalized));
+                }
+            }
+
             // SVG dimensions
             const marginLeft = 100;
             const marginRight = 150;
@@ -1589,11 +1603,11 @@
             // Background
             svg += `<rect width="100%" height="100%" fill="white"/>`;
 
-            // Title - preserve lowercase for 5th string notation (e.g., gDGBD)
-            const tuningStr = strings.map(s => {
-                const isLowercase = s.charAt(0) === s.charAt(0).toLowerCase();
+            // Title - use lowercase for first occurrence of duplicate notes (e.g., fCFAC -> fcFAC)
+            const tuningStr = strings.map((s, idx) => {
                 const normalized = normalizeNote(s);
-                return isLowercase ? normalized.toLowerCase() : normalized;
+                // Use lowercase if this index is marked as first occurrence of a duplicate
+                return lowercaseIndices.has(idx) ? normalized.toLowerCase() : normalized;
             }).join('');
             svg += `<text x="${svgWidth / 2}" y="45" class="title" text-anchor="middle">Banjo Fretboard: ${tuningName}</text>`;
             svg += `<text x="${svgWidth / 2}" y="70" class="subtitle" text-anchor="middle">Tuning: ${tuningStr} — ${tuning.description}</text>`;
@@ -1703,19 +1717,17 @@
                 }
             }
 
-            // String labels at top (preserve case: lowercase = 5th string high octave)
+            // String labels at top (lowercase for first occurrence of duplicate notes)
             for (let i = 0; i < numStrings; i++) {
                 const x = fbLeft + i * stringSpacing;
                 const stringNumber = numStrings - i;
                 const note = strings[i];
 
-                // Preserve original case for display (lowercase g vs uppercase G)
-                // but still handle sharps/flats symbols
-                const isLowercase = note.charAt(0) === note.charAt(0).toLowerCase();
+                // Use lowercase if this is the first occurrence of a duplicate note
                 const baseNote = normalizeNote(note);
                 const displayedBase = displayNote(baseNote);
-                // Apply original case, then replace symbols
-                let displayed = isLowercase ? displayedBase.toLowerCase() : displayedBase;
+                // Apply lowercase if marked, then replace symbols
+                let displayed = lowercaseIndices.has(i) ? displayedBase.toLowerCase() : displayedBase;
                 displayed = displayed.replace('#', '\u266F').replace('b', '\u266D');
 
                 const numberY = fbTop - 35;
@@ -1821,9 +1833,22 @@
 
                 for (const [name, tuning] of tuningsInFamily) {
                     const isSelected = name === state.selectedFretboardTuning;
-                    const tuningStr = tuning.strings.map(s => {
-                        // Keep case as-is for display (lowercase = high octave convention)
-                        return s.length === 1 ? s : s.charAt(0).toUpperCase() + s.slice(1);
+
+                    // Determine which indices should be lowercase (first occurrence of duplicates)
+                    const lowercaseIdx = new Set();
+                    const seenNotes = new Map();
+                    for (let i = 0; i < tuning.strings.length; i++) {
+                        const normalized = normalizeNote(tuning.strings[i]).toUpperCase();
+                        if (!seenNotes.has(normalized)) {
+                            seenNotes.set(normalized, i);
+                        } else {
+                            lowercaseIdx.add(seenNotes.get(normalized));
+                        }
+                    }
+
+                    const tuningStr = tuning.strings.map((s, idx) => {
+                        const normalized = normalizeNote(s);
+                        return lowercaseIdx.has(idx) ? normalized.toLowerCase() : normalized;
                     }).join(' ');
 
                     html += `
