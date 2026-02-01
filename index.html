@@ -1647,22 +1647,6 @@
                 }
             });
 
-            // Barre indicator
-            if (voicing.barre) {
-                const barre = voicing.barre;
-                const displayFret = barre.fret - baseFret + 1;
-                if (displayFret >= 1 && displayFret <= numFrets) {
-                    const y = marginTop + (displayFret - 0.5) * fretSpacing;
-                    // Find string positions for barre
-                    const fromIdx = 4 - barre.toString; // Convert string num to index
-                    const toIdx = 4 - barre.fromString;
-                    const x1 = marginLeft + fromIdx * stringSpacing;
-                    const x2 = marginLeft + toIdx * stringSpacing;
-
-                    svg += `<rect x="${Math.min(x1, x2) - 9}" y="${y - 6}" width="${Math.abs(x2 - x1) + 18}" height="12" rx="6" fill="#1a1a1a" opacity="0.85"/>`;
-                }
-            }
-
             // Degree labels below strings
             positions.forEach((pos, idx) => {
                 const x = marginLeft + idx * stringSpacing;
