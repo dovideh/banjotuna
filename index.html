@@ -479,6 +479,141 @@
         }
 
         /* ============================================
+           FRETBOARD PAGE LAYOUT (Side-by-side)
+           ============================================ */
+        .fretboard-layout {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .tuning-selector {
+            width: 280px;
+            flex-shrink: 0;
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .tuning-selector-header {
+            background: var(--bg-dark);
+            color: white;
+            padding: 12px 15px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .tuning-selector-filter {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+            background: #f9f9f9;
+        }
+
+        .tuning-selector-filter select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .tuning-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .tuning-list-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            transition: background 0.15s;
+            font-size: 13px;
+        }
+
+        .tuning-list-item:hover {
+            background: #f5f5f5;
+        }
+
+        .tuning-list-item.selected {
+            background: var(--g-family-light);
+            border-left: 4px solid var(--g-family);
+            font-weight: bold;
+        }
+
+        .tuning-list-item.c-family.selected {
+            background: var(--c-family-light);
+            border-left-color: var(--c-family);
+        }
+
+        .tuning-list-item.d-family.selected {
+            background: var(--d-family-light);
+            border-left-color: var(--d-family);
+        }
+
+        .tuning-list-item.other-family.selected {
+            background: var(--other-family-light);
+            border-left-color: var(--other-family);
+        }
+
+        .tuning-list-item .tuning-item-name {
+            display: block;
+            font-weight: 600;
+        }
+
+        .tuning-list-item .tuning-item-notes {
+            display: block;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: 'Courier New', monospace;
+            margin-top: 2px;
+        }
+
+        .tuning-list-group {
+            background: #f0f0f0;
+            padding: 8px 15px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .fretboard-display {
+            flex: 1;
+            min-width: 0;
+        }
+
+        @media print {
+            .tuning-selector {
+                display: none !important;
+            }
+
+            .fretboard-layout {
+                display: block;
+            }
+
+            .fretboard-display {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .fretboard-layout {
+                flex-direction: column;
+            }
+
+            .tuning-selector {
+                width: 100%;
+            }
+
+            .tuning-list {
+                max-height: 200px;
+            }
+        }
+
+        /* ============================================
            REFERENCE BOX
            ============================================ */
         .reference-box {
@@ -736,20 +871,35 @@
 
         <!-- Fretboards Tab -->
         <div id="fretboards-tab" class="tab-content">
-            <div class="reference-box">
+            <div class="reference-box no-print">
                 <strong>FRETBOARD NOTE CHARTS:</strong>
-                Select a tuning below to view its complete fretboard diagram with notes at every fret position.<br>
+                Select a tuning from the list to view its complete fretboard diagram with notes at every fret position.<br>
                 5th string starts at fret 6 (shown with diagonal neck edge and peg indicator).<br>
-                Fret markers: &#9679; at frets 3, 7, 10, 15, 17 | &#9733; at fret 5 | &#9679;&#9679; at fret 12
+                Fret markers: &#9679; at frets 3, 7, 10, 15, 17 | &#9733; at fret 5 | &#9679;&#9679; at fret 12<br>
+                Notes above the capo are grayed out to indicate they are not playable.
             </div>
 
-            <div class="control-group" style="margin-bottom: 20px;">
-                <label style="color: #333;">Select Tuning</label>
-                <select id="fretboardTuningSelect" style="background: white; color: #333; border-color: #ccc;">
-                </select>
-            </div>
+            <div class="fretboard-layout">
+                <!-- Tuning Selector (Left Side) -->
+                <div class="tuning-selector no-print">
+                    <div class="tuning-selector-header">Select Tuning</div>
+                    <div class="tuning-selector-filter">
+                        <select id="fretboardFamilyFilter">
+                            <option value="all">All Families</option>
+                            <option value="c-family">C-Based</option>
+                            <option value="d-family">D-Based</option>
+                            <option value="g-family">G-Based</option>
+                            <option value="other-family">Other (4-String)</option>
+                        </select>
+                    </div>
+                    <div class="tuning-list" id="tuningList"></div>
+                </div>
 
-            <div id="fretboardContainer"></div>
+                <!-- Fretboard Display (Right Side) -->
+                <div class="fretboard-display">
+                    <div id="fretboardContainer"></div>
+                </div>
+            </div>
         </div>
 
         <!-- Reference Tab -->
@@ -1243,7 +1393,8 @@
             capoPosition: 0,
             fretCount: 15,
             showNotes: true,
-            selectedFretboardTuning: 'Open G'
+            selectedFretboardTuning: 'Open G',
+            fretboardFamilyFilter: 'all'
         };
 
         function loadState() {
@@ -1568,6 +1719,9 @@
                 for (let fret = 1; fret <= numFrets; fret++) {
                     const y = fbTop + (fret - 0.5) * fretHeight;
 
+                    // Check if this fret is above (behind) the capo
+                    const isBehindCapo = capo > 0 && fret < capo;
+
                     for (let i = 0; i < numStrings; i++) {
                         const x = fbLeft + i * stringSpacing;
                         const openNote = strings[i];
@@ -1582,14 +1736,22 @@
                             const note = getNoteAtFret(openNote, effectiveFret);
                             const displayedNote = formatSimpleNote(note);
 
-                            svg += `<circle cx="${x}" cy="${y}" r="16" class="note-circle"/>`;
-                            svg += `<text x="${x}" y="${y + 5}" class="note" text-anchor="middle">${displayedNote}</text>`;
+                            // Gray out notes behind capo
+                            const circleStyle = isBehindCapo ? 'fill: #e0e0e0; stroke: #bbb;' : '';
+                            const textStyle = isBehindCapo ? 'fill: #aaa;' : '';
+
+                            svg += `<circle cx="${x}" cy="${y}" r="16" class="note-circle" style="${circleStyle}"/>`;
+                            svg += `<text x="${x}" y="${y + 5}" class="note" text-anchor="middle" style="${textStyle}">${displayedNote}</text>`;
                         } else {
                             const note = getNoteAtFret(openNote, fret);
                             const displayedNote = formatSimpleNote(note);
 
-                            svg += `<circle cx="${x}" cy="${y}" r="16" class="note-circle"/>`;
-                            svg += `<text x="${x}" y="${y + 5}" class="note" text-anchor="middle">${displayedNote}</text>`;
+                            // Gray out notes behind capo
+                            const circleStyle = isBehindCapo ? 'fill: #e0e0e0; stroke: #bbb;' : '';
+                            const textStyle = isBehindCapo ? 'fill: #aaa;' : '';
+
+                            svg += `<circle cx="${x}" cy="${y}" r="16" class="note-circle" style="${circleStyle}"/>`;
+                            svg += `<text x="${x}" y="${y + 5}" class="note" text-anchor="middle" style="${textStyle}">${displayedNote}</text>`;
                         }
                     }
                 }
@@ -1599,7 +1761,7 @@
             if (capo > 0) {
                 const capoY = fbTop + (capo - 0.5) * fretHeight;
                 svg += `<rect x="${fbLeft - 15}" y="${capoY - 8}" width="${fretboardWidth + 30}" height="16" fill="#333" rx="4" opacity="0.9"/>`;
-                svg += `<text x="${fbLeft + fretboardWidth/2}" y="${capoY + 4}" text-anchor="middle" font-size="10" fill="white" font-weight="bold">CAPO</text>`;
+                svg += `<text x="${fbLeft + fretboardWidth/2}" y="${capoY + 4}" text-anchor="middle" font-size="10" fill="white" font-weight="bold">CAPO ${capo}</text>`;
             }
 
             // Footer
@@ -1620,11 +1782,61 @@
             container.innerHTML = generateFretboardSVG(state.selectedFretboardTuning);
         }
 
-        function populateFretboardSelect() {
-            const select = document.getElementById('fretboardTuningSelect');
-            select.innerHTML = Object.keys(TUNINGS_DATA)
-                .map(name => `<option value="${name}" ${name === state.selectedFretboardTuning ? 'selected' : ''}>${name}</option>`)
-                .join('');
+        function populateTuningList() {
+            const list = document.getElementById('tuningList');
+            const familyFilter = state.fretboardFamilyFilter || 'all';
+
+            const families = {
+                'c-family': 'C-Based Tunings',
+                'd-family': 'D-Based Tunings',
+                'g-family': 'G-Based Tunings',
+                'other-family': 'Other (4-String)'
+            };
+
+            let html = '';
+
+            for (const [familyKey, familyName] of Object.entries(families)) {
+                if (familyFilter !== 'all' && familyFilter !== familyKey) continue;
+
+                const tuningsInFamily = Object.entries(TUNINGS_DATA)
+                    .filter(([_, t]) => t.family === familyKey);
+
+                if (tuningsInFamily.length === 0) continue;
+
+                // Add group header if showing all families
+                if (familyFilter === 'all') {
+                    html += `<div class="tuning-list-group">${familyName}</div>`;
+                }
+
+                for (const [name, tuning] of tuningsInFamily) {
+                    const isSelected = name === state.selectedFretboardTuning;
+                    const tuningStr = tuning.strings.map(s => {
+                        // Keep case as-is for display (lowercase = high octave convention)
+                        return s.length === 1 ? s : s.charAt(0).toUpperCase() + s.slice(1);
+                    }).join(' ');
+
+                    html += `
+                        <div class="tuning-list-item ${tuning.family} ${isSelected ? 'selected' : ''}"
+                             data-tuning="${name}">
+                            <span class="tuning-item-name">${name}</span>
+                            <span class="tuning-item-notes">${tuningStr}</span>
+                        </div>
+                    `;
+                }
+            }
+
+            list.innerHTML = html;
+
+            // Add click handlers
+            list.querySelectorAll('.tuning-list-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const tuningName = item.dataset.tuning;
+                    state.selectedFretboardTuning = tuningName;
+                    saveState();
+                    populateTuningList(); // Re-render to update selection
+                    renderFretboard();
+                });
+            });
         }
 
         // ============================================
@@ -1656,10 +1868,11 @@
                 renderFretboard();
             });
 
-            document.getElementById('fretboardTuningSelect').addEventListener('change', (e) => {
-                state.selectedFretboardTuning = e.target.value;
+            // Fretboard family filter
+            document.getElementById('fretboardFamilyFilter').addEventListener('change', (e) => {
+                state.fretboardFamilyFilter = e.target.value;
                 saveState();
-                renderFretboard();
+                populateTuningList();
             });
 
             document.querySelectorAll('.tab').forEach(tab => {
@@ -1679,10 +1892,12 @@
                 capoPosition: 0,
                 fretCount: 15,
                 showNotes: true,
-                selectedFretboardTuning: 'Open G'
+                selectedFretboardTuning: 'Open G',
+                fretboardFamilyFilter: 'all'
             };
             saveState();
             applyStateToUI();
+            populateTuningList();
             renderTunings();
             renderFretboard();
         }
@@ -1692,7 +1907,7 @@
             document.getElementById('capoPosition').value = state.capoPosition;
             document.getElementById('fretCount').value = state.fretCount;
             document.getElementById('showNotesToggle').checked = state.showNotes;
-            document.getElementById('fretboardTuningSelect').value = state.selectedFretboardTuning;
+            document.getElementById('fretboardFamilyFilter').value = state.fretboardFamilyFilter || 'all';
         }
 
         // ============================================
@@ -1701,7 +1916,7 @@
         function init() {
             loadState();
             applyStateToUI();
-            populateFretboardSelect();
+            populateTuningList();
             setupEventListeners();
             renderTunings();
             renderFretboard();
