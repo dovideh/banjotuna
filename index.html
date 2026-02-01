@@ -1589,8 +1589,12 @@
             // Background
             svg += `<rect width="100%" height="100%" fill="white"/>`;
 
-            // Title
-            const tuningStr = strings.map(s => normalizeNote(s)).join('');
+            // Title - preserve lowercase for 5th string notation (e.g., gDGBD)
+            const tuningStr = strings.map(s => {
+                const isLowercase = s.charAt(0) === s.charAt(0).toLowerCase();
+                const normalized = normalizeNote(s);
+                return isLowercase ? normalized.toLowerCase() : normalized;
+            }).join('');
             svg += `<text x="${svgWidth / 2}" y="45" class="title" text-anchor="middle">Banjo Fretboard: ${tuningName}</text>`;
             svg += `<text x="${svgWidth / 2}" y="70" class="subtitle" text-anchor="middle">Tuning: ${tuningStr} — ${tuning.description}</text>`;
 
@@ -1699,13 +1703,20 @@
                 }
             }
 
-            // String labels at top
+            // String labels at top (preserve case: lowercase = 5th string high octave)
             for (let i = 0; i < numStrings; i++) {
                 const x = fbLeft + i * stringSpacing;
                 const stringNumber = numStrings - i;
                 const note = strings[i];
-                const normalized = normalizeNote(note);
-                const displayed = formatSimpleNote(note);
+
+                // Preserve original case for display (lowercase g vs uppercase G)
+                // but still handle sharps/flats symbols
+                const isLowercase = note.charAt(0) === note.charAt(0).toLowerCase();
+                const baseNote = normalizeNote(note);
+                const displayedBase = displayNote(baseNote);
+                // Apply original case, then replace symbols
+                let displayed = isLowercase ? displayedBase.toLowerCase() : displayedBase;
+                displayed = displayed.replace('#', '\u266F').replace('b', '\u266D');
 
                 const numberY = fbTop - 35;
                 const labelY = fbTop - 12;
