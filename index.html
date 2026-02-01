@@ -1612,21 +1612,21 @@
                 svg += `<text x="${x}" y="${marginTop - 20}" font-size="9" text-anchor="middle" fill="#666">${stringNum}</text>`;
             }
 
-            // 5th string indicator (starts at fret 5, to the left of the main strings)
+            // 5th string indicator (starts at fret 5 wire, box spans fret 5-6)
             // Only show if baseFret is 1 (low position chords)
             if (baseFret === 1) {
                 const fifthStringX = marginLeft - 12;
-                const fret5Y = marginTop + 4 * fretSpacing; // Fret 5 line
-                const fret6Y = marginTop + 5 * fretSpacing; // Fret 6 line
+                const boxWidth = 12;
+                const fret5Y = marginTop + 5 * fretSpacing; // Fret 5 wire (where 5th string peg is)
+                const fret6Y = marginTop + 6 * fretSpacing; // Fret 6 wire
 
-                // Draw the 5th string line from fret 5 to fret 6
+                // Draw the box (rectangle like the main grid)
+                svg += `<rect x="${fifthStringX - boxWidth/2}" y="${fret5Y}" width="${boxWidth}" height="${fret6Y - fret5Y}" fill="none" stroke="#333" stroke-width="1"/>`;
+
+                // Draw the 5th string line in the center of the box
                 svg += `<line x1="${fifthStringX}" y1="${fret5Y}" x2="${fifthStringX}" y2="${fret6Y}" stroke="#333" stroke-width="1.5"/>`;
 
-                // Draw horizontal fret lines for the 5th string box
-                svg += `<line x1="${fifthStringX - 6}" y1="${fret5Y}" x2="${fifthStringX + 6}" y2="${fret5Y}" stroke="#333" stroke-width="1"/>`;
-                svg += `<line x1="${fifthStringX - 6}" y1="${fret6Y}" x2="${fifthStringX + 6}" y2="${fret6Y}" stroke="#333" stroke-width="1"/>`;
-
-                // Tuning peg indicator (small circle at fret 5)
+                // Tuning peg indicator (small filled circle at top)
                 svg += `<circle cx="${fifthStringX}" cy="${fret5Y}" r="3" fill="#333"/>`;
 
                 // Label for 5th string
