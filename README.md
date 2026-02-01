@@ -1,4 +1,40 @@
+Available at https://dovideh.github.io/banjotuna/
+
 # Banjo Tuning Reference Web Application
+**Version 2.0**
+Version 2 Summary - Chord Diagram Generation
+New Feature: Chord Diagrams Tab
+Added a comprehensive chord diagram generator to the banjo tuning reference application.
+
+Core Functionality:
+
+12 keys (A through G with sharps/flats)
+8 chord types per key: Major, Minor, Minor7, 6th, 7th, Diminished, Sus4, Augmented
+Toggle between numeric (1-2-3-4) and PIMA finger notation
+Works with all existing tunings
+Chord Voicing Algorithm:
+
+Recursive backtracking algorithm based on pitch class calculation
+(string_pitch + fret) % 12 for accurate note detection
+Validates all chord tones are present
+Scores and sorts voicings by playability
+Display Features:
+
+SVG chord diagrams with 4 main strings (DGBD for Open G)
+6 frets shown
+Open string indicator (○) and muted string indicator (✕)
+Circled finger numbers on fretted positions
+Root notes displayed as filled circles (for B&W printing)
+Chord degree labels below strings (1, 3, 5, etc.)
+5th string box at fret 5-6, flush with main grid
+Bug Fixes Applied:
+
+Fixed chord voicing algorithm (was using greedy, now uses recursive backtracking)
+Fixed string ordering (left to right = strings 4, 3, 2, 1)
+Fixed finger assignment (each position gets unique finger 1, 2, 3, 4 in sequence)
+Removed incorrect barre indicator that connected separate finger positions
+Properly excludes 5th drone string from low-position chord calculations
+
 
 **Version 1.0**
 
