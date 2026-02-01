@@ -1349,96 +1349,176 @@
             pima: { 1: 'I', 2: 'M', 3: 'A', 4: 'P', T: 'P' }
         };
 
-        // Get all notes in a chord
-        function getChordNotes(rootNote, chordType) {
+        // Convert note name to pitch class (0-11)
+        function noteToPitchClass(note) {
+            const normalized = normalizeNote(note);
+            return CHROMATIC_SCALE.indexOf(normalized);
+        }
+
+        // Get chord pitch classes from root and type
+        function getChordPitchClasses(rootNote, chordType) {
             const type = CHORD_TYPES[chordType];
             if (!type) return [];
 
-            const rootIndex = CHROMATIC_SCALE.indexOf(normalizeNote(rootNote));
-            if (rootIndex === -1) return [];
+            const rootPitch = noteToPitchClass(rootNote);
+            if (rootPitch === -1) return [];
 
-            return type.intervals.map(interval => {
-                return CHROMATIC_SCALE[(rootIndex + interval) % 12];
-            });
+            return type.intervals.map(interval => (rootPitch + interval) % 12);
         }
 
-        // Check if a note is in a chord
-        function isNoteInChord(note, chordNotes) {
-            const normalizedNote = normalizeNote(note);
-            return chordNotes.includes(normalizedNote);
+        // Get all notes in a chord (as note names)
+        function getChordNotes(rootNote, chordType) {
+            const pitchClasses = getChordPitchClasses(rootNote, chordType);
+            return pitchClasses.map(pc => CHROMATIC_SCALE[pc]);
         }
 
-        // Get the degree of a note in a chord
-        function getNoteDegree(note, rootNote, chordType) {
-            const type = CHORD_TYPES[chordType];
-            if (!type) return null;
+        // Recursive backtracking algorithm to find all valid chord voicings
+        function findAllVoicings(tuningData, rootNote, chordType, options = {}) {
+            const { maxFret = 12, maxReach = 4, maxFingers = 4 } = options;
 
-            const normalizedNote = normalizeNote(note);
-            const rootIndex = CHROMATIC_SCALE.indexOf(normalizeNote(rootNote));
-            const noteIndex = CHROMATIC_SCALE.indexOf(normalizedNote);
-
-            if (rootIndex === -1 || noteIndex === -1) return null;
-
-            const interval = (noteIndex - rootIndex + 12) % 12;
-            const degreeIndex = type.intervals.indexOf(interval);
-
-            if (degreeIndex === -1) return null;
-            return type.degrees[degreeIndex];
-        }
-
-        // Find chord voicing for a given tuning
-        function findChordVoicing(tuningData, rootNote, chordType, maxFret = 5) {
-            const chordNotes = getChordNotes(rootNote, chordType);
-            if (chordNotes.length === 0) return null;
+            const chordPitchClasses = getChordPitchClasses(rootNote, chordType);
+            if (chordPitchClasses.length === 0) return [];
 
             const strings = tuningData.strings;
             const numStrings = strings.length;
             const shortStringIdx = tuningData.shortStringIndex;
             const shortStringStart = tuningData.shortStringStartFret || 6;
 
-            // Find playable positions for each string
-            const stringOptions = strings.map((openNote, stringIdx) => {
-                const options = [];
-                const normalizedOpen = normalizeNote(openNote);
+            // Convert string notes to pitch classes
+            const stringPitchClasses = strings.map(note => noteToPitchClass(note));
 
-                // Check open string
-                if (isNoteInChord(normalizedOpen, chordNotes)) {
-                    // For short string (5th string), it can only be played open if chord position allows
-                    if (stringIdx !== shortStringIdx || shortStringIdx === null) {
-                        options.push({ fret: 0, note: normalizedOpen });
-                    }
+            const results = [];
+
+            // Recursive function to explore voicings
+            function explore(stringIdx, currentVoicing, usedTones) {
+                // Count non-open fretted positions (fingers needed)
+                const fingersUsed = currentVoicing.filter(v => v && v.fret > 0).length;
+                if (fingersUsed > maxFingers) return;
+
+                // Check reach constraint
+                const frettedFrets = currentVoicing.filter(v => v && v.fret > 0).map(v => v.fret);
+                if (frettedFrets.length > 1) {
+                    const reach = Math.max(...frettedFrets) - Math.min(...frettedFrets);
+                    if (reach > maxReach) return;
                 }
 
-                // Check fretted positions
-                for (let fret = 1; fret <= maxFret; fret++) {
-                    // Skip frets before short string starts
-                    if (stringIdx === shortStringIdx && fret < shortStringStart) {
-                        continue;
+                // Base case: all strings processed
+                if (stringIdx === numStrings) {
+                    // Validate: all chord tones must be present
+                    if (usedTones.size === chordPitchClasses.length) {
+                        results.push([...currentVoicing]);
                     }
-
-                    const frettedNote = getNoteAtFret(openNote, fret);
-                    if (isNoteInChord(frettedNote, chordNotes)) {
-                        options.push({ fret, note: frettedNote });
-                    }
+                    return;
                 }
 
-                return options;
+                const stringPitch = stringPitchClasses[stringIdx];
+
+                // Option 1: Mute this string (don't play it)
+                explore(stringIdx + 1, [...currentVoicing, null], new Set(usedTones));
+
+                // Determine fret range for this string
+                let startFret = 0;
+                let endFret = maxFret;
+
+                // Handle 5th string (short string) - can only play open or from startFret onward
+                if (stringIdx === shortStringIdx && shortStringStart !== null) {
+                    // For simplicity, treat the 5th string as only playable open at its tuned pitch
+                    // (since it starts at fret 5/6, low fret voicings can't use it)
+                    const openPitch = stringPitch;
+                    const toneIndex = chordPitchClasses.indexOf(openPitch);
+                    if (toneIndex !== -1) {
+                        const newUsedTones = new Set(usedTones);
+                        newUsedTones.add(openPitch);
+                        explore(stringIdx + 1, [...currentVoicing, {
+                            fret: 0,
+                            pitchClass: openPitch,
+                            toneIndex: toneIndex,
+                            note: CHROMATIC_SCALE[openPitch]
+                        }], newUsedTones);
+                    }
+                    // Also try muting (already handled above)
+                    return;
+                }
+
+                // Try each fret position
+                for (let fret = startFret; fret <= endFret; fret++) {
+                    const pitchAtFret = (stringPitch + fret) % 12;
+                    const toneIndex = chordPitchClasses.indexOf(pitchAtFret);
+
+                    // Only use this fret if it produces a chord tone
+                    if (toneIndex !== -1) {
+                        const newUsedTones = new Set(usedTones);
+                        newUsedTones.add(pitchAtFret);
+
+                        explore(stringIdx + 1, [...currentVoicing, {
+                            fret: fret,
+                            pitchClass: pitchAtFret,
+                            toneIndex: toneIndex,
+                            note: CHROMATIC_SCALE[pitchAtFret]
+                        }], newUsedTones);
+                    }
+                }
+            }
+
+            explore(0, [], new Set());
+
+            return results;
+        }
+
+        // Score and sort voicings by playability
+        function scoreVoicing(voicing) {
+            const sounding = voicing.filter(v => v !== null);
+            const fretted = sounding.filter(v => v.fret > 0);
+
+            // Prefer voicings with:
+            // 1. Lower minimum fret (more accessible)
+            // 2. More open strings (easier to play)
+            // 3. More strings sounding (fuller sound)
+            // 4. Smaller fret span (easier reach)
+
+            const minFret = fretted.length > 0 ? Math.min(...fretted.map(v => v.fret)) : 0;
+            const maxFret = fretted.length > 0 ? Math.max(...fretted.map(v => v.fret)) : 0;
+            const span = maxFret - minFret;
+            const openCount = sounding.filter(v => v.fret === 0).length;
+            const soundingCount = sounding.length;
+
+            // Lower score is better
+            return minFret * 100 + span * 50 - openCount * 30 - soundingCount * 10;
+        }
+
+        // Find the best chord voicing for a given tuning
+        function findChordVoicing(tuningData, rootNote, chordType, maxFret = 12) {
+            const allVoicings = findAllVoicings(tuningData, rootNote, chordType, {
+                maxFret: maxFret,
+                maxReach: 4,
+                maxFingers: 4
             });
 
-            // Find the best voicing using a simple algorithm
-            // Prioritize: 1) Lower frets, 2) More open strings, 3) Smaller stretch
-            const voicing = findBestVoicing(stringOptions, chordNotes, rootNote, numStrings, shortStringIdx);
+            if (allVoicings.length === 0) return null;
 
-            if (!voicing) return null;
+            // Sort by score and pick the best
+            allVoicings.sort((a, b) => scoreVoicing(a) - scoreVoicing(b));
 
-            // Assign fingers based on fret positions
-            const positions = voicing.map((pos, idx) => {
+            const bestVoicing = allVoicings[0];
+            const numStrings = bestVoicing.length;
+            const type = CHORD_TYPES[chordType];
+            const rootPitch = noteToPitchClass(rootNote);
+
+            // Convert to position format for rendering
+            const positions = bestVoicing.map((pos, idx) => {
                 if (pos === null) {
-                    return { string: numStrings - idx, fret: null, muted: true, note: null, degree: null };
+                    return {
+                        string: numStrings - idx,
+                        fret: null,
+                        muted: true,
+                        note: null,
+                        degree: null,
+                        isRoot: false
+                    };
                 }
 
-                const degree = getNoteDegree(pos.note, rootNote, chordType);
-                const isRoot = normalizeNote(pos.note) === normalizeNote(rootNote);
+                const degree = type.degrees[pos.toneIndex];
+                const isRoot = pos.pitchClass === rootPitch;
 
                 return {
                     string: numStrings - idx,
@@ -1456,11 +1536,13 @@
             // Determine base fret for display
             const frettedPositions = positions.filter(p => p.fret > 0);
             const minFret = frettedPositions.length > 0 ? Math.min(...frettedPositions.map(p => p.fret)) : 1;
-            const maxFretUsed = frettedPositions.length > 0 ? Math.max(...frettedPositions.map(p => p.fret)) : 1;
             const baseFret = minFret > 4 ? minFret : 1;
 
             // Check for barre chord
             const barre = detectBarre(positions);
+
+            // Get chord notes for display
+            const chordNotes = getChordNotes(rootNote, chordType);
 
             return {
                 positions,
@@ -1468,94 +1550,6 @@
                 barre,
                 chordNotes: chordNotes.map(n => displayNote(n))
             };
-        }
-
-        function findBestVoicing(stringOptions, chordNotes, rootNote, numStrings, shortStringIdx) {
-            // Simple greedy algorithm to find a playable voicing
-            // Try to include all chord notes while minimizing stretch
-
-            const voicing = new Array(numStrings).fill(null);
-            const usedNotes = new Set();
-
-            // First pass: find positions for each string preferring open strings
-            for (let i = 0; i < numStrings; i++) {
-                const options = stringOptions[i];
-                if (options.length === 0) {
-                    voicing[i] = null; // Will be muted
-                    continue;
-                }
-
-                // Prefer open strings, then lower frets
-                const sorted = [...options].sort((a, b) => a.fret - b.fret);
-
-                // Prefer root note if available
-                const rootOption = sorted.find(opt => normalizeNote(opt.note) === normalizeNote(rootNote));
-                if (rootOption && !usedNotes.has(rootOption.note + '-' + i)) {
-                    voicing[i] = rootOption;
-                    usedNotes.add(rootOption.note);
-                } else {
-                    voicing[i] = sorted[0];
-                    usedNotes.add(sorted[0].note);
-                }
-            }
-
-            // Validate: check if all chord notes are present
-            const presentNotes = new Set(voicing.filter(v => v !== null).map(v => v.note));
-            const allNotesPresent = chordNotes.every(note => presentNotes.has(note));
-
-            // Check stretch (max fret distance between fingers)
-            const frettedFrets = voicing.filter(v => v !== null && v.fret > 0).map(v => v.fret);
-            const stretch = frettedFrets.length > 1 ? Math.max(...frettedFrets) - Math.min(...frettedFrets) : 0;
-
-            // If stretch is too large (> 4 frets) or not all notes present, try alternative
-            if (stretch > 4 || !allNotesPresent) {
-                // Try to find a better voicing with barres or different positions
-                return findAlternativeVoicing(stringOptions, chordNotes, rootNote, numStrings);
-            }
-
-            return voicing;
-        }
-
-        function findAlternativeVoicing(stringOptions, chordNotes, rootNote, numStrings) {
-            // Try different starting frets for barre chords
-            for (let startFret = 1; startFret <= 7; startFret++) {
-                const voicing = new Array(numStrings).fill(null);
-
-                for (let i = 0; i < numStrings; i++) {
-                    const options = stringOptions[i].filter(opt =>
-                        opt.fret === 0 || (opt.fret >= startFret && opt.fret <= startFret + 4)
-                    );
-
-                    if (options.length > 0) {
-                        // Prefer options closer to startFret
-                        const sorted = [...options].sort((a, b) => {
-                            if (a.fret === 0 && b.fret === 0) return 0;
-                            if (a.fret === 0) return 1; // Open strings less preferred in barre position
-                            if (b.fret === 0) return -1;
-                            return Math.abs(a.fret - startFret) - Math.abs(b.fret - startFret);
-                        });
-                        voicing[i] = sorted[0];
-                    }
-                }
-
-                // Validate
-                const presentNotes = new Set(voicing.filter(v => v !== null).map(v => v.note));
-                const hasRoot = voicing.some(v => v !== null && normalizeNote(v.note) === normalizeNote(rootNote));
-                const hasEnoughNotes = presentNotes.size >= Math.min(3, chordNotes.length);
-
-                if (hasRoot && hasEnoughNotes) {
-                    return voicing;
-                }
-            }
-
-            // Fallback: return whatever we can find
-            const voicing = new Array(numStrings).fill(null);
-            for (let i = 0; i < numStrings; i++) {
-                if (stringOptions[i].length > 0) {
-                    voicing[i] = stringOptions[i][0];
-                }
-            }
-            return voicing;
         }
 
         function assignFingers(positions) {
