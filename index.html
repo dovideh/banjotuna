@@ -1517,26 +1517,20 @@
         }
 
         function assignFingers(positions) {
-            // Get fretted positions sorted by fret, then by string number (high to low)
+            // Get fretted positions sorted by fret (ascending), then by string number (descending)
+            // This ensures: lowest fret first, and at same fret, higher string numbers first
             const fretted = positions
                 .filter(p => p.fret > 0)
                 .sort((a, b) => {
                     if (a.fret !== b.fret) return a.fret - b.fret;
-                    return a.stringNum - b.stringNum; // Lower string number = higher pitch
+                    return b.stringNum - a.stringNum; // Higher string number first at same fret
                 });
 
             if (fretted.length === 0) return;
 
-            let fingerNum = 1;
-            let lastFret = -1;
-
-            fretted.forEach(p => {
-                if (p.fret !== lastFret) {
-                    // New fret position, increment finger
-                    if (lastFret !== -1) fingerNum++;
-                    lastFret = p.fret;
-                }
-                p.finger = Math.min(fingerNum, 4);
+            // Assign unique finger to each position in sequence
+            fretted.forEach((p, idx) => {
+                p.finger = Math.min(idx + 1, 4);
             });
         }
 
@@ -1572,7 +1566,7 @@
         // Generate SVG chord diagram for 4 main strings
         function generateChordDiagramSVG(voicing, chordName, tuningName, fingerNotation = 'numbers') {
             const width = 140;
-            const height = 180;
+            const height = 200;
             const marginLeft = 25;
             const marginTop = 35;
             const marginRight = 15;
@@ -1580,7 +1574,7 @@
 
             const positions = voicing.positions;
             const numStrings = 4; // Always 4 main strings for chord diagrams
-            const numFrets = 5;
+            const numFrets = 6;
             const baseFret = voicing.baseFret;
 
             const stringSpacing = (width - marginLeft - marginRight) / (numStrings - 1);
