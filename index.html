@@ -1,0 +1,2014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Banjo Tunings Reference</title>
+    <style>
+        /* ============================================
+           CSS VARIABLES & BASE STYLES
+           ============================================ */
+        :root {
+            --c-family: #C74242;
+            --c-family-light: #F8E3E3;
+            --d-family: #2D7A4F;
+            --d-family-light: #E3F5E9;
+            --g-family: #2E5C8A;
+            --g-family-light: #E3EEF8;
+            --other-family: #7B5BA6;
+            --other-family-light: #F0E8F5;
+            --text-primary: #1a1a1a;
+            --text-secondary: #444;
+            --text-muted: #666;
+            --bg-dark: #1a1a1a;
+            --bg-light: #f5f5f5;
+            --border-color: #ddd;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f0f0f0;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        /* ============================================
+           PRINT STYLES
+           ============================================ */
+        @page {
+            size: A4 portrait;
+            margin: 12mm;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-only {
+                display: block !important;
+            }
+
+            .page-break {
+                page-break-after: always;
+            }
+
+            .tuning-card {
+                break-inside: avoid;
+            }
+
+            .app-container {
+                max-width: 100%;
+                padding: 0;
+            }
+
+            .tunings-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        .print-only {
+            display: none;
+        }
+
+        /* ============================================
+           LAYOUT
+           ============================================ */
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* ============================================
+           HEADER
+           ============================================ */
+        .app-header {
+            text-align: center;
+            border: 3px solid #000;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: var(--bg-light);
+            border-radius: 8px;
+        }
+
+        .app-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .app-header .subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin: 5px 0;
+        }
+
+        /* ============================================
+           CONTROL PANEL
+           ============================================ */
+        .control-panel {
+            background: var(--bg-dark);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #aaa;
+        }
+
+        .control-group select,
+        .control-group input[type="number"] {
+            padding: 8px 12px;
+            border: 2px solid #444;
+            border-radius: 4px;
+            background: #333;
+            color: white;
+            font-size: 14px;
+            min-width: 150px;
+        }
+
+        .control-group select:focus,
+        .control-group input:focus {
+            outline: none;
+            border-color: var(--g-family);
+        }
+
+        /* Toggle Switch */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #444;
+            transition: 0.3s;
+            border-radius: 30px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: var(--g-family);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(30px);
+        }
+
+        .toggle-label {
+            font-size: 14px;
+            font-weight: bold;
+            min-width: 50px;
+        }
+
+        /* Checkbox toggle for notes */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-container span {
+            font-size: 14px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--g-family);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1e4a6e;
+        }
+
+        .btn-secondary {
+            background: #444;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #555;
+        }
+
+        /* ============================================
+           PAGE TITLE
+           ============================================ */
+        .page-title {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            padding: 12px;
+            background: #333;
+            color: white;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* ============================================
+           FAMILY INTRO
+           ============================================ */
+        .family-intro {
+            background: #f0f0f0;
+            border-left: 5px solid;
+            padding: 15px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .family-intro.c-family-intro { border-color: var(--c-family); }
+        .family-intro.d-family-intro { border-color: var(--d-family); }
+        .family-intro.g-family-intro { border-color: var(--g-family); }
+        .family-intro.other-family-intro { border-color: var(--other-family); }
+
+        /* ============================================
+           TUNINGS GRID
+           ============================================ */
+        .tunings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* ============================================
+           TUNING CARD
+           ============================================ */
+        .tuning-card {
+            border: 3px solid;
+            border-radius: 8px;
+            padding: 16px;
+            background: white;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .tuning-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .tuning-card.c-family {
+            border-color: var(--c-family);
+            background: linear-gradient(to bottom, var(--c-family-light) 0%, #FEF8F8 100%);
+        }
+
+        .tuning-card.d-family {
+            border-color: var(--d-family);
+            background: linear-gradient(to bottom, var(--d-family-light) 0%, #F8FEF9 100%);
+        }
+
+        .tuning-card.g-family {
+            border-color: var(--g-family);
+            background: linear-gradient(to bottom, var(--g-family-light) 0%, #F8FBFE 100%);
+        }
+
+        .tuning-card.other-family {
+            border-color: var(--other-family);
+            background: linear-gradient(to bottom, var(--other-family-light) 0%, #FDFBFE 100%);
+        }
+
+        .tuning-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 8px;
+            border-bottom: 3px solid;
+            padding-bottom: 8px;
+        }
+
+        .c-family .tuning-header { border-color: var(--c-family); }
+        .d-family .tuning-header { border-color: var(--d-family); }
+        .g-family .tuning-header { border-color: var(--g-family); }
+        .other-family .tuning-header { border-color: var(--other-family); }
+
+        .tuning-name {
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .genre-tag {
+            font-size: 12px;
+            font-style: italic;
+            color: var(--text-muted);
+        }
+
+        .string-count-badge {
+            display: inline-block;
+            background: #666;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 8px;
+        }
+
+        .note-sequence {
+            font-family: 'Courier New', Consolas, monospace;
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            margin: 12px 0;
+            text-align: center;
+            background: white;
+            padding: 12px 8px;
+            border-radius: 4px;
+            border: 2px solid var(--border-color);
+        }
+
+        .note-sequence sub {
+            font-size: 0.6em;
+            vertical-align: sub;
+        }
+
+        /* Nut Visual */
+        .nut-visual {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 12px 0;
+        }
+
+        .string-circle {
+            width: 28px;
+            height: 28px;
+            border: 3px solid #333;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            background: white;
+        }
+
+        .string-circle.changed {
+            background: #333;
+            color: white;
+        }
+
+        /* Tuning Details */
+        .tuning-details {
+            font-size: 13px;
+            line-height: 1.7;
+            color: #333;
+            margin-top: 10px;
+        }
+
+        .tuning-details div {
+            margin: 5px 0;
+        }
+
+        .delta-line {
+            font-weight: bold;
+        }
+
+        .capo-line {
+            font-weight: bold;
+            color: #0066cc;
+        }
+
+        .songs-line {
+            font-style: italic;
+            color: #555;
+        }
+
+        /* Effective Tuning (with capo) */
+        .effective-tuning {
+            background: #fff8e1;
+            border: 2px solid #ff9800;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .effective-tuning strong {
+            color: #e65100;
+        }
+
+        /* ============================================
+           FRETBOARD DIAGRAM
+           ============================================ */
+        .fretboard-container {
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+
+        .fretboard-svg {
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* ============================================
+           FRETBOARD PAGE LAYOUT (Side-by-side)
+           ============================================ */
+        .fretboard-layout {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .tuning-selector {
+            width: 280px;
+            flex-shrink: 0;
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .tuning-selector-header {
+            background: var(--bg-dark);
+            color: white;
+            padding: 12px 15px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .tuning-selector-filter {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+            background: #f9f9f9;
+        }
+
+        .tuning-selector-filter select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .tuning-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .tuning-list-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            transition: background 0.15s;
+            font-size: 13px;
+        }
+
+        .tuning-list-item:hover {
+            background: #f5f5f5;
+        }
+
+        .tuning-list-item.selected {
+            background: var(--g-family-light);
+            border-left: 4px solid var(--g-family);
+            font-weight: bold;
+        }
+
+        .tuning-list-item.c-family.selected {
+            background: var(--c-family-light);
+            border-left-color: var(--c-family);
+        }
+
+        .tuning-list-item.d-family.selected {
+            background: var(--d-family-light);
+            border-left-color: var(--d-family);
+        }
+
+        .tuning-list-item.other-family.selected {
+            background: var(--other-family-light);
+            border-left-color: var(--other-family);
+        }
+
+        .tuning-list-item .tuning-item-name {
+            display: block;
+            font-weight: 600;
+        }
+
+        .tuning-list-item .tuning-item-notes {
+            display: block;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: 'Courier New', monospace;
+            margin-top: 2px;
+        }
+
+        .tuning-list-group {
+            background: #f0f0f0;
+            padding: 8px 15px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .fretboard-display {
+            flex: 1;
+            min-width: 0;
+        }
+
+        @media print {
+            .tuning-selector {
+                display: none !important;
+            }
+
+            .fretboard-layout {
+                display: block;
+            }
+
+            .fretboard-display {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .fretboard-layout {
+                flex-direction: column;
+            }
+
+            .tuning-selector {
+                width: 100%;
+            }
+
+            .tuning-list {
+                max-height: 200px;
+            }
+        }
+
+        /* ============================================
+           REFERENCE BOX
+           ============================================ */
+        .reference-box {
+            background: var(--bg-dark);
+            color: white;
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        .reference-box strong {
+            font-size: 14px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        /* ============================================
+           REFERENCE SECTIONS
+           ============================================ */
+        .reference-section {
+            background: white;
+            border: 2px solid var(--border-color);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .reference-section h3 {
+            margin: 0 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .fret-reference-box {
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+        }
+
+        .fret-reference-box.blue {
+            background: var(--g-family-light);
+            border: 3px solid var(--g-family);
+        }
+
+        .fret-reference-box.red {
+            background: var(--c-family-light);
+            border: 3px solid var(--c-family);
+        }
+
+        .fret-reference-box.green {
+            background: var(--d-family-light);
+            border: 3px solid var(--d-family);
+        }
+
+        .fret-reference-box h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+
+        .fret-reference-box ul {
+            margin: 0;
+            padding-left: 20px;
+            line-height: 1.8;
+        }
+
+        /* ============================================
+           WARNING BOX
+           ============================================ */
+        .warning-box {
+            background: #fff8e1;
+            border: 3px solid #ff9800;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 6px;
+        }
+
+        .warning-box h4 {
+            margin: 0 0 8px 0;
+            color: #e65100;
+        }
+
+        /* ============================================
+           LEGEND
+           ============================================ */
+        .legend {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px solid var(--border-color);
+        }
+
+        /* ============================================
+           TABS
+           ============================================ */
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            border-bottom: 3px solid var(--border-color);
+            padding-bottom: 0;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: #e0e0e0;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.2s;
+            margin-bottom: -3px;
+            border: 3px solid transparent;
+            border-bottom: none;
+        }
+
+        .tab:hover {
+            background: #d0d0d0;
+        }
+
+        .tab.active {
+            background: white;
+            border-color: var(--border-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ============================================
+           CAPO CHART
+           ============================================ */
+        .capo-chart {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .capo-chart th,
+        .capo-chart td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .capo-chart th {
+            background: var(--bg-dark);
+            color: white;
+        }
+
+        .capo-chart tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 768px) {
+            .control-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .tunings-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .app-header h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <h1>INTERACTIVE BANJO TUNINGS REFERENCE</h1>
+            <div class="subtitle">24 Tunings with Fretboard Note Charts, Capo Simulation & SVG Diagrams</div>
+            <div class="subtitle">5-String & 4-String Banjo | Organized by Tuning Family</div>
+        </header>
+
+        <!-- Control Panel -->
+        <div class="control-panel no-print">
+            <div class="control-group">
+                <label>Tuning Family</label>
+                <select id="familyFilter">
+                    <option value="all">All Families</option>
+                    <option value="c-family">C-Based Tunings</option>
+                    <option value="d-family">D-Based Tunings</option>
+                    <option value="g-family">G-Based Tunings</option>
+                    <option value="other-family">Other (4-String)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Capo Position</label>
+                <input type="number" id="capoPosition" min="0" max="12" value="0">
+            </div>
+
+            <div class="control-group">
+                <label>Fret Count</label>
+                <select id="fretCount">
+                    <option value="12">12 Frets</option>
+                    <option value="15" selected>15 Frets</option>
+                    <option value="18">18 Frets</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Options</label>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="showNotesToggle" checked>
+                    <span>Show notes on fretboard</span>
+                </div>
+                <div class="checkbox-container" style="margin-top: 8px;">
+                    <input type="checkbox" id="solfegeToggle">
+                    <span>Use solfège (Do Re Mi)</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Actions</label>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="window.print()">Print / PDF</button>
+                    <button class="btn btn-secondary" onclick="resetSettings()">Reset</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs no-print">
+            <button class="tab active" data-tab="tunings">Tunings</button>
+            <button class="tab" data-tab="fretboards">Fretboards</button>
+            <button class="tab" data-tab="reference">Reference</button>
+        </div>
+
+        <!-- Tunings Tab -->
+        <div id="tunings-tab" class="tab-content active">
+            <div class="reference-box">
+                <strong>NOTATION SYSTEM:</strong>
+                Notes shown with Scientific Pitch Notation (SPN) subscripts (e.g., G&#8324; = G above middle C)<br>
+                String order: 5th (drone) &#8594; 4th &#8594; 3rd &#8594; 2nd &#8594; 1st<br>
+                &#916; symbol = changes required from reference tuning | &#8593; = tune up | &#8595; = tune down<br>
+                Circle Key: &#9675; = Standard Open String | &#9679; = Changed String<br>
+                Display uses mixed notation: Ab, Bb (flats) but C#, D#, F# (sharps) for musical convention
+            </div>
+
+            <div id="tuningsContainer"></div>
+        </div>
+
+        <!-- Fretboards Tab -->
+        <div id="fretboards-tab" class="tab-content">
+            <div class="reference-box no-print">
+                <strong>FRETBOARD NOTE CHARTS:</strong>
+                Select a tuning from the list to view its complete fretboard diagram with notes at every fret position.<br>
+                5th string starts at fret 6 (shown with diagonal neck edge and peg indicator).<br>
+                Fret markers: &#9679; at frets 3, 7, 10, 15, 17 | &#9733; at fret 5 | &#9679;&#9679; at fret 12<br>
+                Notes above the capo are grayed out to indicate they are not playable.
+            </div>
+
+            <div class="fretboard-layout">
+                <!-- Tuning Selector (Left Side) -->
+                <div class="tuning-selector no-print">
+                    <div class="tuning-selector-header">Select Tuning</div>
+                    <div class="tuning-selector-filter">
+                        <select id="fretboardFamilyFilter">
+                            <option value="all">All Families</option>
+                            <option value="c-family">C-Based</option>
+                            <option value="d-family">D-Based</option>
+                            <option value="g-family">G-Based</option>
+                            <option value="other-family">Other (4-String)</option>
+                        </select>
+                    </div>
+                    <div class="tuning-list" id="tuningList"></div>
+                </div>
+
+                <!-- Fretboard Display (Right Side) -->
+                <div class="fretboard-display">
+                    <div id="fretboardContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reference Tab -->
+        <div id="reference-tab" class="tab-content">
+            <div class="reference-section">
+                <h3>Fret Reference for Relative Tuning</h3>
+
+                <div class="fret-reference-box blue">
+                    <h4>TUNING 5TH STRING:</h4>
+                    <ul>
+                        <li><strong>E:</strong> 1st string, 2nd fret when 1st = C (Little Birdie)</li>
+                        <li><strong>F:</strong> 1st string, 3rd fret when 1st = C (F Tuning, East Virginia)</li>
+                        <li><strong>F#:</strong> 1st string, 4th fret when 1st = C</li>
+                        <li><strong>G:</strong> 1st string, 5th fret when 1st = C OR 4th string, 5th fret</li>
+                        <li><strong>A:</strong> 1st string, 7th fret when 1st = C (Open D, D Modal)</li>
+                    </ul>
+                </div>
+
+                <div class="fret-reference-box red">
+                    <h4>TUNING 2ND STRING:</h4>
+                    <ul>
+                        <li><strong>A:</strong> 3rd string, 2nd fret when 3rd = G (G Variant, Moonshiner)</li>
+                        <li><strong>B:</strong> When 2nd string is at C, fret 2nd string at 2nd fret = B (Open G)</li>
+                        <li><strong>C:</strong> 3rd string, 5th fret when 3rd = G (Double C, Sawmill)</li>
+                        <li><strong>C#:</strong> When 2nd string is at C, fret at 1st = C# (Open A)</li>
+                    </ul>
+                </div>
+
+                <div class="fret-reference-box green">
+                    <h4>TUNING OTHER STRINGS:</h4>
+                    <ul>
+                        <li><strong>1st String:</strong> Match to target pitch or use electronic tuner</li>
+                        <li><strong>3rd String:</strong> Usually tuned relative to 4th string (perfect 4th interval)</li>
+                        <li><strong>4th String:</strong> Foundation - tune first with electronic tuner</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="reference-section">
+                <h3>Capo Transposition Chart</h3>
+
+                <table class="capo-chart">
+                    <thead>
+                        <tr>
+                            <th>Base Tuning</th>
+                            <th>Capo 2</th>
+                            <th>Capo 3</th>
+                            <th>Capo 4</th>
+                            <th>Capo 5</th>
+                            <th>Capo 7</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Open G</strong></td>
+                            <td>A</td>
+                            <td>Bb</td>
+                            <td>B</td>
+                            <td>C</td>
+                            <td>D</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Double C</strong></td>
+                            <td>D</td>
+                            <td>Eb</td>
+                            <td>E</td>
+                            <td>F</td>
+                            <td>G</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Open D</strong></td>
+                            <td>E</td>
+                            <td>F</td>
+                            <td>F#</td>
+                            <td>G</td>
+                            <td>A</td>
+                        </tr>
+                        <tr>
+                            <td><strong>G Modal</strong></td>
+                            <td>A</td>
+                            <td>Bb</td>
+                            <td>B</td>
+                            <td>C</td>
+                            <td>D</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="reference-box" style="margin-top: 20px;">
+                    <strong>5TH STRING SPIKES (when 5th string = G):</strong><br>
+                    7th fret = A | 9th fret = B | 10th fret = C | 12th fret = D
+                </div>
+            </div>
+
+            <div class="reference-section">
+                <h3>String Range Overview</h3>
+                <ul>
+                    <li><strong>5th String Range:</strong> E&#8324; (Little Birdie) &#8594; A&#8324; (Open D, Open A, D Modal)</li>
+                    <li><strong>4th String Range:</strong> C&#8322; (Minstrel family) &#8594; F&#8323; (East Virginia)</li>
+                    <li><strong>3rd String Range:</strong> F&#8323; (Standard F, Minstrel) &#8594; A&#8324; (Open A)</li>
+                    <li><strong>2nd String Range:</strong> A&#8323; (Multiple tunings) &#8594; C#&#8324; (Open A)</li>
+                    <li><strong>1st String Range:</strong> C&#8324; (Standard F, Darling Cora) &#8594; E&#8324; (Cackling Hen, Open A)</li>
+                </ul>
+            </div>
+
+            <div class="warning-box">
+                <h4>HIGH TENSION WARNING:</h4>
+                <p><strong>Open A</strong> and <strong>Open D</strong> require significantly higher string tension than Open G.
+                Use lighter gauge strings (.009 or .010 for the 1st string) and tune up gradually.
+                Check your bridge position and neck relief when using these tunings regularly.</p>
+            </div>
+
+            <div class="reference-section">
+                <h3>Quick Tuning Strategies</h3>
+                <ol>
+                    <li><strong>Start from a known tuning:</strong> Most players keep their banjo in Open G and adjust from there</li>
+                    <li><strong>Use electronic tuners:</strong> Chromatic tuners are essential for accuracy with octave notation</li>
+                    <li><strong>Relative tuning:</strong> Use fret references when tuning by ear</li>
+                    <li><strong>String tension:</strong> High tunings (Open A, Open D) require lighter gauge strings</li>
+                    <li><strong>Bridge setup:</strong> Moving between tuning families may require bridge repositioning</li>
+                    <li><strong>Note your bridge position:</strong> Mark or measure bridge placement for each tuning family</li>
+                    <li><strong>Tune gradually:</strong> When tuning up to high-tension tunings, go slowly to avoid breakage</li>
+                </ol>
+            </div>
+
+            <div class="legend">
+                Complete Banjo Tunings Reference | 24 Tunings Across 4 Families<br>
+                Symbols: &#8593; = tune up | &#8595; = tune down | &#916; = change from reference | SPN = Scientific Pitch Notation<br>
+                &#11088; = Most common | &#9888; = Requires special consideration (string tension, setup)
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // CHROMATIC SCALE & NOTE UTILITIES
+        // ============================================
+        const CHROMATIC_SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+        // Normalize note names (flats to sharps, handle case)
+        const NOTE_MAP = {
+            'c': 'C', 'c#': 'C#', 'db': 'C#', 'Db': 'C#',
+            'd': 'D', 'd#': 'D#', 'eb': 'D#', 'Eb': 'D#',
+            'e': 'E', 'fb': 'E', 'Fb': 'E',
+            'f': 'F', 'e#': 'F', 'E#': 'F', 'f#': 'F#', 'gb': 'F#', 'Gb': 'F#',
+            'g': 'G', 'g#': 'G#', 'ab': 'G#', 'Ab': 'G#',
+            'a': 'A', 'a#': 'A#', 'bb': 'A#', 'Bb': 'A#',
+            'b': 'B', 'cb': 'B', 'Cb': 'B', 'b#': 'C', 'B#': 'C',
+            'C': 'C', 'C#': 'C#', 'D': 'D', 'D#': 'D#', 'E': 'E',
+            'F': 'F', 'F#': 'F#', 'G': 'G', 'G#': 'G#', 'A': 'A', 'A#': 'A#', 'B': 'B'
+        };
+
+        // Display note mapping - prefer flats for G# and A# (as per user's Python script)
+        const DISPLAY_NOTE_MAP = {
+            'G#': 'Ab',
+            'A#': 'Bb'
+            // Keep D#, C#, F# as sharps
+        };
+
+        // Solfège mapping: C=Do, D=Re, E=Mi, F=Fa, G=Sol, A=La, B=Si
+        const SOLFEGE_MAP = {
+            'C': 'Do', 'D': 'Re', 'E': 'Mi', 'F': 'Fa',
+            'G': 'Sol', 'A': 'La', 'B': 'Si'
+        };
+
+        function normalizeNote(note) {
+            return NOTE_MAP[note] || note.toUpperCase();
+        }
+
+        function displayNote(note) {
+            // Convert internal sharp note to preferred display (mix of flats and sharps)
+            if (DISPLAY_NOTE_MAP[note]) {
+                return DISPLAY_NOTE_MAP[note];
+            }
+            return note;
+        }
+
+        function toSolfege(note) {
+            // Convert a note to solfège notation
+            // Handle sharps/flats: C# -> Do#, Db -> Reb, etc.
+            const baseNote = note.charAt(0).toUpperCase();
+            const accidental = note.slice(1); // # or b or empty
+            const solfege = SOLFEGE_MAP[baseNote] || baseNote;
+            return solfege + accidental;
+        }
+
+        function getNoteAtFret(openNote, fret) {
+            const normalized = normalizeNote(openNote);
+            const startIndex = CHROMATIC_SCALE.indexOf(normalized);
+            if (startIndex === -1) return openNote;
+            const newIndex = (startIndex + fret) % 12;
+            return CHROMATIC_SCALE[newIndex];
+        }
+
+        // ============================================
+        // TUNINGS DATA (24 tunings including 4-string)
+        // ============================================
+        const TUNINGS_DATA = {
+            // C-Based Tunings
+            "Minstrel Tuning": {
+                strings: ["f", "C", "F", "A", "C"],
+                family: "c-family",
+                description: "Historical",
+                referenceTuning: "Standard F",
+                deltaChanges: "From Standard F: 4th↓C",
+                capoPositions: { 0: "Not commonly capoed" },
+                songs: "Briggs manual, Coon Hunt",
+                changedStrings: [true, true, true, true, true],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "Naomi Weiss": {
+                strings: ["g", "C", "G", "A", "D"],
+                family: "c-family",
+                description: "Song-Specific",
+                referenceTuning: "Minstrel",
+                deltaChanges: "From Minstrel: 5th↑G, 3rd↑G, 2nd→A (same), 1st↑D",
+                capoPositions: { 2: "Key of D" },
+                songs: '"Naomi Weiss"',
+                changedStrings: [false, false, true, false, true],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "Little Birdie": {
+                strings: ["e", "C", "G", "A", "D"],
+                family: "c-family",
+                description: "Appalachian",
+                referenceTuning: "Naomi Weiss",
+                deltaChanges: "From Naomi Weiss: 5th↓E",
+                capoPositions: { 2: "Key of F# (uncommon)" },
+                songs: '"Little Birdie"',
+                changedStrings: [true, false, false, false, false],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "Hook-and-Line": {
+                strings: ["g", "C", "G", "C", "D"],
+                family: "c-family",
+                description: "Open C Variant",
+                referenceTuning: "Little Birdie",
+                deltaChanges: "From Little Birdie: 5th↑G, 2nd↑C",
+                capoPositions: { 2: "Key of D", 5: "Key of F" },
+                songs: '"Hook and Line"',
+                changedStrings: [true, false, false, true, false],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "Cackling Hen": {
+                strings: ["g", "C", "G", "C", "E"],
+                family: "c-family",
+                description: "Open C Major",
+                referenceTuning: "Hook-and-Line",
+                deltaChanges: "From Hook-and-Line: 1st↑E",
+                capoPositions: { 0: "Key of C", 2: "Key of D" },
+                songs: "Open C tuning, Irish/Celtic",
+                changedStrings: [false, false, false, false, true],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "Darling Cora": {
+                strings: ["g", "C", "G", "C", "C"],
+                family: "c-family",
+                description: "Drone Heavy (Triple C)",
+                referenceTuning: "Cackling Hen",
+                deltaChanges: "From Cackling Hen: 1st↓C",
+                capoPositions: { 2: "Key of D", 5: "Key of F" },
+                songs: '"Darling Cora"',
+                changedStrings: [false, false, false, false, true],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "Double C": {
+                strings: ["g", "C", "G", "C", "D"],
+                family: "c-family",
+                description: "Old-Time Standard",
+                referenceTuning: "Open G",
+                deltaChanges: "From Open G: 4th↓C, 2nd↑C",
+                capoPositions: { 2: "Key of D", 5: "Key of F" },
+                songs: "Wildwood Flower, Billy in the Lowground",
+                changedStrings: [false, true, false, true, false],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "Standard C": {
+                strings: ["g", "C", "G", "B", "D"],
+                family: "c-family",
+                description: "C Tuning for Old-Time",
+                referenceTuning: "Open G",
+                deltaChanges: "From Open G: 4th↓C",
+                capoPositions: { 2: "Key of D", 5: "Key of F" },
+                songs: "Old-time repertoire",
+                changedStrings: [false, true, false, false, false],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+
+            // D-Based Tunings
+            "Moonshiner": {
+                strings: ["g", "D", "G", "A", "D"],
+                family: "d-family",
+                description: "Modal/Dark",
+                referenceTuning: "Standard F",
+                deltaChanges: "From Standard F: 4th↑D, 3rd↑G, 2nd→A (same), 1st↑D",
+                capoPositions: { 2: "Key of A", 5: "Key of C" },
+                songs: '"Moonshiner"',
+                changedStrings: [false, true, false, true, true],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "German War": {
+                strings: ["g", "D", "G", "A", "F#"],
+                family: "d-family",
+                description: "Historical",
+                referenceTuning: "Moonshiner",
+                deltaChanges: "From Moonshiner: 1st↓F#",
+                capoPositions: { 2: "Key of A (modal)" },
+                songs: "German war songs",
+                changedStrings: [false, false, false, false, true],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "Reuben": {
+                strings: ["g", "D", "F#", "A", "F#"],
+                family: "d-family",
+                description: "Song-Specific",
+                referenceTuning: "German War",
+                deltaChanges: "From German War: 3rd↓F#",
+                capoPositions: { 2: "Key of A (modal)" },
+                songs: '"Reuben"',
+                changedStrings: [false, false, true, false, false],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "F Tuning": {
+                strings: ["f", "D", "G", "C", "D"],
+                family: "d-family",
+                description: "Cumberland Gap",
+                referenceTuning: "Reuben",
+                deltaChanges: "From Reuben: 5th↓F, 3rd↑G, 2nd↑C, 1st↑D",
+                capoPositions: { 2: "Key of G", 5: "Key of Bb" },
+                songs: "Cumberland Gap, Drunkard's Doom",
+                changedStrings: [true, false, true, true, true],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "East Virginia": {
+                strings: ["f", "F", "G", "C", "D"],
+                family: "d-family",
+                description: "George Gibson Style",
+                referenceTuning: "F Tuning",
+                deltaChanges: "From F Tuning: 4th↑F",
+                capoPositions: { 2: "Key of G", 5: "Key of Bb" },
+                songs: "George Gibson style",
+                changedStrings: [false, true, false, false, false],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+
+            // G-Based Tunings
+            "Standard (F)": {
+                strings: ["f", "C", "F", "A", "C"],
+                family: "g-family",
+                description: "Historical Reference",
+                referenceTuning: null,
+                deltaChanges: "(Reference tuning for historical context)",
+                capoPositions: { 2: "Key of G", 5: "Key of Bb" },
+                songs: "General playing, historical reference",
+                changedStrings: [false, false, false, false, false],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "Open G": {
+                strings: ["g", "D", "G", "B", "D"],
+                family: "g-family",
+                description: "Bluegrass Standard",
+                referenceTuning: null,
+                deltaChanges: "(Modern standard reference - most common)",
+                capoPositions: { 2: "Key of A", 5: "Key of C", 7: "Key of D" },
+                songs: "Bill Cheatum, Old Joe Clark, Cripple Creek",
+                changedStrings: [true, true, true, true, true],
+                featured: true,
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "Open G (Low G)": {
+                strings: ["G", "D", "G", "B", "D"],
+                family: "g-family",
+                description: "Open G with Low 5th",
+                referenceTuning: "Open G",
+                deltaChanges: "From Open G: 5th↓G (one octave lower)",
+                capoPositions: { 2: "Key of A", 5: "Key of C" },
+                songs: "Low drone sound",
+                changedStrings: [true, false, false, false, false],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "Open A": {
+                strings: ["a", "E", "A", "C#", "E"],
+                family: "g-family",
+                description: "High Tension",
+                referenceTuning: "Open G",
+                deltaChanges: "From Open G: all strings ↑2 frets (whole step)",
+                capoPositions: { 2: "Key of B", 5: "Key of D" },
+                songs: "Tunes in A key - requires light gauge strings!",
+                changedStrings: [true, true, true, true, true],
+                warning: true,
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "G Variant": {
+                strings: ["g", "D", "G", "A", "D"],
+                family: "g-family",
+                description: "Modal G",
+                referenceTuning: "Open G",
+                deltaChanges: "From Open G: 2nd↓A",
+                capoPositions: { 2: "Key of A", 5: "Key of C" },
+                songs: "Leather Britches, Texas, Frosty Morning",
+                changedStrings: [false, false, false, true, false],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "G Modal (Sawmill)": {
+                strings: ["g", "D", "G", "C", "D"],
+                family: "g-family",
+                description: "Mountain/Modal",
+                referenceTuning: "Open G",
+                deltaChanges: "From Open G: 2nd↑C",
+                capoPositions: { 2: "Key of A", 5: "Key of C" },
+                songs: "Modal tunes, F key songs",
+                changedStrings: [false, false, false, true, false],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "Open D": {
+                strings: ["a", "D", "F#", "A", "D"],
+                family: "g-family",
+                description: "Blues/Folk (Graveyard)",
+                referenceTuning: "Open G",
+                deltaChanges: "From Open G: all strings adjusted for D major",
+                capoPositions: { 2: "Key of E", 3: "Key of F", 5: "Key of G" },
+                songs: 'Most D key tunes, "Graveyard Tuning" - use light strings!',
+                changedStrings: [true, true, true, true, true],
+                warning: true,
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "D Modal": {
+                strings: ["a", "D", "G", "A", "D"],
+                family: "g-family",
+                description: "Celtic/Medieval",
+                referenceTuning: "Open D",
+                deltaChanges: "From Open D: 3rd↓G",
+                capoPositions: { 2: "Key of E (modal)", 5: "Key of G (modal)" },
+                songs: "D modal tunes, medieval tonality",
+                changedStrings: [false, false, true, false, false],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+            "D Tuning (Reno)": {
+                strings: ["a", "D", "G", "B", "E"],
+                family: "g-family",
+                description: "Don Reno Style",
+                referenceTuning: "Open G",
+                deltaChanges: "From Open G: 5th↑A, 1st↑E",
+                capoPositions: { 2: "Key of E", 5: "Key of G" },
+                songs: "Don Reno repertoire",
+                changedStrings: [true, false, false, false, true],
+                shortStringIndex: 0,
+                shortStringStartFret: 6
+            },
+
+            // Other / 4-String Tunings
+            "Plectrum C": {
+                strings: ["C", "G", "B", "D"],
+                family: "other-family",
+                description: "4-String Plectrum",
+                referenceTuning: null,
+                deltaChanges: "(4-string plectrum standard)",
+                capoPositions: { 0: "Key of C" },
+                songs: "Jazz, Dixieland",
+                changedStrings: [false, false, false, false],
+                shortStringIndex: null,
+                shortStringStartFret: null,
+                stringCount: 4
+            },
+            "Tenor (Standard)": {
+                strings: ["C", "G", "D", "A"],
+                family: "other-family",
+                description: "4-String Tenor CGDA",
+                referenceTuning: null,
+                deltaChanges: "(4-string tenor standard - fifths tuning)",
+                capoPositions: { 0: "Key of C/G" },
+                songs: "Irish, Jazz, Traditional",
+                changedStrings: [false, false, false, false],
+                shortStringIndex: null,
+                shortStringStartFret: null,
+                stringCount: 4
+            }
+        };
+
+        // ============================================
+        // STATE MANAGEMENT
+        // ============================================
+        let state = {
+            familyFilter: 'all',
+            capoPosition: 0,
+            fretCount: 15,
+            showNotes: true,
+            selectedFretboardTuning: 'Open G',
+            fretboardFamilyFilter: 'all',
+            useSolfege: false
+        };
+
+        function loadState() {
+            const saved = localStorage.getItem('banjoTuningsState');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    state = { ...state, ...parsed };
+                } catch (e) {
+                    console.error('Failed to load state:', e);
+                }
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('banjoTuningsState', JSON.stringify(state));
+        }
+
+        // ============================================
+        // NOTE FORMATTING
+        // ============================================
+        function parseNoteWithOctave(noteStr) {
+            // Handle format like "G4", "C#3", "g" (lowercase = high octave)
+            const match = noteStr.match(/^([A-Ga-g][#b]?)(\d)?$/);
+            if (!match) return null;
+
+            let note = match[1];
+            let octave = match[2] ? parseInt(match[2]) : null;
+
+            // Lowercase note = high octave (convention from Python script)
+            if (note === note.toLowerCase() && !octave) {
+                octave = 4; // High octave for 5th string
+            } else if (!octave) {
+                octave = 3; // Default octave
+            }
+
+            return { note: normalizeNote(note), octave };
+        }
+
+        function formatNoteForDisplay(noteStr) {
+            const parsed = parseNoteWithOctave(noteStr);
+            if (!parsed) return noteStr;
+
+            let note = displayNote(parsed.note);
+            // Convert to solfège if enabled
+            if (state.useSolfege) {
+                note = toSolfege(note);
+            }
+            // Replace # with sharp symbol, b with flat symbol
+            note = note.replace('#', '\u266F').replace('b', '\u266D');
+
+            return `${note}<sub>${parsed.octave}</sub>`;
+        }
+
+        function formatSimpleNote(note) {
+            // Format a simple note (no octave) for fretboard display
+            let displayed = displayNote(normalizeNote(note));
+            // Convert to solfège if enabled
+            if (state.useSolfege) {
+                displayed = toSolfege(displayed);
+            }
+            return displayed.replace('#', '\u266F').replace('b', '\u266D');
+        }
+
+        // ============================================
+        // RENDERING FUNCTIONS
+        // ============================================
+        function renderNoteSequence(strings) {
+            return strings.map(s => formatNoteForDisplay(s)).join(' ');
+        }
+
+        function renderCapoInfo(capoPositions) {
+            return Object.entries(capoPositions)
+                .map(([pos, key]) => pos === '0' ? key : `Capo ${pos} → ${key}`)
+                .join(' | ');
+        }
+
+        function renderTuningCard(name, tuning) {
+            const featuredBadge = tuning.featured ? ' &#11088;' : '';
+            const warningBadge = tuning.warning ? ' &#9888;' : '';
+            const stringCount = tuning.stringCount || 5;
+            const stringBadge = stringCount === 4 ? '<span class="string-count-badge">4-string</span>' : '';
+
+            // Render nut visual
+            const nutVisual = tuning.changedStrings.map((changed, i) => {
+                const stringNum = stringCount - i;
+                return `<div class="string-circle ${changed ? 'changed' : ''}">${stringNum}</div>`;
+            }).join('');
+
+            return `
+                <div class="tuning-card ${tuning.family}">
+                    <div class="tuning-header">
+                        <span class="tuning-name">${name}${featuredBadge}${warningBadge}${stringBadge}</span>
+                        <span class="genre-tag">${tuning.description}</span>
+                    </div>
+                    <div class="note-sequence">${renderNoteSequence(tuning.strings)}</div>
+                    <div class="nut-visual">
+                        ${nutVisual}
+                    </div>
+                    <div class="tuning-details">
+                        <div class="delta-line">&#916;: ${tuning.deltaChanges}</div>
+                        <div class="capo-line">${renderCapoInfo(tuning.capoPositions)}</div>
+                        <div class="songs-line">${tuning.songs}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTunings() {
+            const container = document.getElementById('tuningsContainer');
+            const families = {
+                'c-family': { name: 'C-Based Tunings', intro: 'These tunings center around C tonality, ranging from historical minstrel styles to modern old-time favorites. They create bright, modal sounds ideal for melodic playing.' },
+                'd-family': { name: 'D-Based Tunings', intro: 'D-based tunings create darker, more mysterious tonal landscapes. These tunings are favored for modal old-time pieces and offer rich harmonic possibilities.' },
+                'g-family': { name: 'G-Based Tunings', intro: 'The most common family including the standard bluegrass tuning. These tunings range from bright major chords to modal sounds, offering the widest versatility for different playing styles.' },
+                'other-family': { name: 'Other Tunings (4-String)', intro: '4-string banjo tunings for plectrum and tenor banjos. These instruments are commonly used in jazz, Dixieland, and Irish traditional music.' }
+            };
+
+            let html = '';
+
+            for (const [familyKey, familyInfo] of Object.entries(families)) {
+                if (state.familyFilter !== 'all' && state.familyFilter !== familyKey) continue;
+
+                const tuningsInFamily = Object.entries(TUNINGS_DATA)
+                    .filter(([_, t]) => t.family === familyKey);
+
+                if (tuningsInFamily.length === 0) continue;
+
+                html += `
+                    <div class="page-title">${familyInfo.name}</div>
+                    <div class="family-intro ${familyKey}-intro">
+                        <strong>${familyKey.toUpperCase().replace('-', ' ')}:</strong> ${familyInfo.intro}
+                    </div>
+                    <div class="tunings-grid">
+                        ${tuningsInFamily.map(([name, tuning]) => renderTuningCard(name, tuning)).join('')}
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        // ============================================
+        // FRETBOARD SVG GENERATOR (Enhanced from Python)
+        // ============================================
+        function generateFretboardSVG(tuningName) {
+            const tuning = TUNINGS_DATA[tuningName];
+            if (!tuning) return '';
+
+            const numFrets = state.fretCount;
+            const capo = state.capoPosition;
+            const showNotes = state.showNotes;
+
+            const strings = tuning.strings;
+            const numStrings = strings.length;
+            const shortStringIdx = tuning.shortStringIndex;
+            const shortStringStart = tuning.shortStringStartFret;
+
+            // Determine which strings should be lowercase (first occurrence of duplicate notes)
+            // e.g., for tuning with notes F C F A C, the first F and first C should be lowercase: f c F A C
+            const lowercaseIndices = new Set();
+            const seenNotes = new Map(); // normalized note -> first index
+            for (let i = 0; i < strings.length; i++) {
+                const normalized = normalizeNote(strings[i]).toUpperCase();
+                if (!seenNotes.has(normalized)) {
+                    seenNotes.set(normalized, i);
+                } else {
+                    // This note has appeared before, mark the first occurrence as lowercase
+                    lowercaseIndices.add(seenNotes.get(normalized));
+                }
+            }
+
+            // SVG dimensions
+            const marginLeft = 100;
+            const marginRight = 150;
+            const marginTop = 140;
+            const marginBottom = 80;
+            const stringSpacing = 55;
+            const fretHeight = 50;
+
+            const fretboardWidth = (numStrings - 1) * stringSpacing;
+            const fretboardHeight = numFrets * fretHeight;
+            const svgWidth = marginLeft + fretboardWidth + marginRight;
+            const svgHeight = marginTop + fretboardHeight + marginBottom;
+
+            const fbLeft = marginLeft;
+            const fbTop = marginTop;
+            const fbRight = fbLeft + fretboardWidth;
+            const bottomY = fbTop + fretboardHeight;
+
+            // Fret markers
+            const markerFrets = [3, 5, 7, 10, 12, 15, 17];
+            const doubleMarkerFrets = [12];
+
+            let svg = `<svg class="fretboard-svg" width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">`;
+
+            // Styles
+            svg += `
+            <style>
+                .title { font-family: Georgia, serif; font-size: 24px; font-weight: bold; fill: #000; }
+                .subtitle { font-family: Georgia, serif; font-size: 16px; font-style: italic; fill: #333; }
+                .string-label { font-family: 'Courier New', monospace; font-size: 18px; font-weight: bold; fill: #000; }
+                .fret-number { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #333; }
+                .note { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #000; }
+                .note-circle { fill: white; stroke: #000; stroke-width: 1.5; }
+                .fret-line { stroke: #000; stroke-width: 2; }
+                .string-line { stroke: #444; stroke-width: 1.5; }
+                .nut { stroke: #000; stroke-width: 6; }
+                .fret-marker { fill: #ddd; stroke: none; }
+                .peg { fill: #333; stroke: #000; stroke-width: 1; }
+                .ghost-string { stroke: #999; stroke-width: 1; stroke-dasharray: 3,3; }
+                .fret-marker-symbol { fill: #000; stroke: none; }
+            </style>`;
+
+            // Background
+            svg += `<rect width="100%" height="100%" fill="white"/>`;
+
+            // Title - use lowercase for first occurrence of duplicate notes (e.g., fCFAC -> fcFAC)
+            const tuningStr = strings.map((s, idx) => {
+                let note = displayNote(normalizeNote(s));
+                // Convert to solfège if enabled
+                if (state.useSolfege) {
+                    note = toSolfege(note);
+                }
+                // Use lowercase if this index is marked as first occurrence of a duplicate
+                return lowercaseIndices.has(idx) ? note.toLowerCase() : note;
+            }).join('');
+            svg += `<text x="${svgWidth / 2}" y="45" class="title" text-anchor="middle">Banjo Fretboard: ${tuningName}</text>`;
+            svg += `<text x="${svgWidth / 2}" y="70" class="subtitle" text-anchor="middle">Tuning: ${tuningStr} — ${tuning.description}</text>`;
+
+            // Fret markers (on fretboard face)
+            for (const fret of markerFrets) {
+                if (fret <= numFrets) {
+                    const y = fbTop + (fret - 0.5) * fretHeight;
+                    if (doubleMarkerFrets.includes(fret)) {
+                        svg += `<circle cx="${fbLeft + fretboardWidth/2 - 15}" cy="${y}" r="7" class="fret-marker"/>`;
+                        svg += `<circle cx="${fbLeft + fretboardWidth/2 + 15}" cy="${y}" r="7" class="fret-marker"/>`;
+                    } else {
+                        svg += `<circle cx="${fbLeft + fretboardWidth/2}" cy="${y}" r="7" class="fret-marker"/>`;
+                    }
+                }
+            }
+
+            // Nut
+            if (shortStringIdx !== null && shortStringStart !== null) {
+                const nutStartX = fbLeft + stringSpacing - 10;
+                svg += `<line x1="${nutStartX}" y1="${fbTop}" x2="${fbRight + 10}" y2="${fbTop}" class="nut"/>`;
+            } else {
+                svg += `<line x1="${fbLeft - 10}" y1="${fbTop}" x2="${fbRight + 10}" y2="${fbTop}" class="nut"/>`;
+            }
+
+            // Fret lines with ordinal labels on right
+            for (let fret = 1; fret <= numFrets; fret++) {
+                const y = fbTop + fret * fretHeight;
+
+                let lineStartX, lineEndX;
+                if (shortStringIdx !== null && shortStringStart !== null && fret < shortStringStart) {
+                    lineStartX = fbLeft + stringSpacing - 10;
+                    lineEndX = fbRight + 10;
+                } else {
+                    lineStartX = fbLeft - 10;
+                    lineEndX = fbRight + 10;
+                }
+
+                // Extend line for marker frets
+                if (markerFrets.includes(fret)) {
+                    lineEndX += 20;
+                }
+
+                svg += `<line x1="${lineStartX}" y1="${y}" x2="${lineEndX}" y2="${y}" class="fret-line"/>`;
+
+                // Ordinal fret labels on right
+                if (markerFrets.includes(fret)) {
+                    const ordinal = fret + (fret === 1 ? 'st' : fret === 2 ? 'nd' : fret === 3 ? 'rd' : 'th') + ' fret';
+                    const textX = fbRight + 70;
+                    svg += `<text x="${textX}" y="${y}" class="fret-number" text-anchor="middle" dominant-baseline="middle">${ordinal}</text>`;
+
+                    // Marker symbols
+                    const symbolX = textX + 50;
+                    if (fret === 5) {
+                        // Star for 5th fret
+                        const starPoints = `${symbolX},${y-7} ${symbolX+2},${y-2} ${symbolX+7},${y-2} ${symbolX+3},${y+1} ${symbolX+5},${y+6} ${symbolX},${y+3} ${symbolX-5},${y+6} ${symbolX-3},${y+1} ${symbolX-7},${y-2} ${symbolX-2},${y-2}`;
+                        svg += `<polygon points="${starPoints}" class="fret-marker-symbol"/>`;
+                    } else if (fret === 12) {
+                        // Double circles
+                        svg += `<circle cx="${symbolX - 8}" cy="${y}" r="6" class="fret-marker-symbol"/>`;
+                        svg += `<circle cx="${symbolX + 8}" cy="${y}" r="6" class="fret-marker-symbol"/>`;
+                    } else {
+                        // Single circle
+                        svg += `<circle cx="${symbolX}" cy="${y}" r="6" class="fret-marker-symbol"/>`;
+                    }
+                }
+            }
+
+            // Neck edges with diagonal for short string
+            if (shortStringIdx !== null && shortStringStart !== null) {
+                const nutLeftX = fbLeft + stringSpacing - 10;
+                const fret4Y = fbTop + 4 * fretHeight;
+                const fret5Y = fbTop + 5 * fretHeight;
+                const leftEdgeX = fbLeft - 10;
+
+                // Ghost string line (dotted)
+                svg += `<line x1="${fbLeft}" y1="${fbTop}" x2="${fbLeft}" y2="${fret5Y - fretHeight}" class="ghost-string"/>`;
+
+                // Polyline neck edge
+                svg += `<polyline points="${nutLeftX},${fbTop} ${nutLeftX},${fret4Y} ${leftEdgeX},${fret5Y} ${leftEdgeX},${bottomY}" style="stroke:#000; stroke-width:3; fill:none;"/>`;
+                svg += `<line x1="${fbRight + 10}" y1="${fbTop}" x2="${fbRight + 10}" y2="${bottomY}" style="stroke:#000; stroke-width:3;"/>`;
+                svg += `<line x1="${leftEdgeX}" y1="${bottomY}" x2="${fbRight + 10}" y2="${bottomY}" style="stroke:#000; stroke-width:3;"/>`;
+            } else {
+                // 4-string: rectangular edges
+                svg += `<line x1="${fbLeft - 10}" y1="${fbTop}" x2="${fbLeft - 10}" y2="${bottomY}" style="stroke:#000; stroke-width:3;"/>`;
+                svg += `<line x1="${fbRight + 10}" y1="${fbTop}" x2="${fbRight + 10}" y2="${bottomY}" style="stroke:#000; stroke-width:3;"/>`;
+                svg += `<line x1="${fbLeft - 10}" y1="${bottomY}" x2="${fbRight + 10}" y2="${bottomY}" style="stroke:#000; stroke-width:3;"/>`;
+            }
+
+            // String lines
+            for (let i = 0; i < numStrings; i++) {
+                const x = fbLeft + i * stringSpacing;
+
+                if (i === shortStringIdx && shortStringStart !== null) {
+                    const startY = fbTop + (shortStringStart - 1) * fretHeight;
+                    svg += `<line x1="${x}" y1="${startY}" x2="${x}" y2="${bottomY}" class="string-line" style="stroke-width:2;"/>`;
+
+                    // Peg indicator
+                    const pegY = startY - 50;
+                    const pegHeadX = fbLeft - 10;
+                    const pegShaftStartX = fbLeft + 30;
+                    svg += `<rect x="${pegHeadX}" y="${pegY - 5}" width="${pegShaftStartX - pegHeadX}" height="8" class="peg" rx="2"/>`;
+                    svg += `<circle cx="${pegHeadX}" cy="${pegY}" r="10" class="peg"/>`;
+                    svg += `<circle cx="${pegHeadX}" cy="${pegY}" r="4" fill="white"/>`;
+                } else {
+                    svg += `<line x1="${x}" y1="${fbTop}" x2="${x}" y2="${bottomY}" class="string-line"/>`;
+                }
+            }
+
+            // String labels at top (lowercase for first occurrence of duplicate notes)
+            for (let i = 0; i < numStrings; i++) {
+                const x = fbLeft + i * stringSpacing;
+                const stringNumber = numStrings - i;
+                const note = strings[i];
+
+                // Use lowercase if this is the first occurrence of a duplicate note
+                const baseNote = normalizeNote(note);
+                let displayedBase = displayNote(baseNote);
+                // Convert to solfège if enabled
+                if (state.useSolfege) {
+                    displayedBase = toSolfege(displayedBase);
+                }
+                // Apply lowercase if marked, then replace symbols
+                let displayed = lowercaseIndices.has(i) ? displayedBase.toLowerCase() : displayedBase;
+                displayed = displayed.replace('#', '\u266F').replace('b', '\u266D');
+
+                const numberY = fbTop - 35;
+                const labelY = fbTop - 12;
+
+                svg += `<text x="${x}" y="${numberY}" class="fret-number" text-anchor="middle">${stringNumber}</text>`;
+                svg += `<text x="${x}" y="${labelY}" class="string-label" text-anchor="middle">${displayed}</text>`;
+            }
+
+            // Notes at each fret position
+            if (showNotes) {
+                for (let fret = 1; fret <= numFrets; fret++) {
+                    const y = fbTop + (fret - 0.5) * fretHeight;
+
+                    // Check if this fret is above (behind) the capo
+                    const isBehindCapo = capo > 0 && fret < capo;
+
+                    for (let i = 0; i < numStrings; i++) {
+                        const x = fbLeft + i * stringSpacing;
+                        const openNote = strings[i];
+
+                        // Handle short string
+                        if (i === shortStringIdx && shortStringStart !== null) {
+                            if (fret < shortStringStart) {
+                                continue; // No notes in empty space
+                            }
+                            // Calculate effective fret for short string
+                            const effectiveFret = fret - (shortStringStart - 1);
+                            const note = getNoteAtFret(openNote, effectiveFret);
+                            const displayedNote = formatSimpleNote(note);
+
+                            // Gray out notes behind capo
+                            const circleStyle = isBehindCapo ? 'fill: #e0e0e0; stroke: #bbb;' : '';
+                            const textStyle = isBehindCapo ? 'fill: #aaa;' : '';
+
+                            svg += `<circle cx="${x}" cy="${y}" r="16" class="note-circle" style="${circleStyle}"/>`;
+                            svg += `<text x="${x}" y="${y + 5}" class="note" text-anchor="middle" style="${textStyle}">${displayedNote}</text>`;
+                        } else {
+                            const note = getNoteAtFret(openNote, fret);
+                            const displayedNote = formatSimpleNote(note);
+
+                            // Gray out notes behind capo
+                            const circleStyle = isBehindCapo ? 'fill: #e0e0e0; stroke: #bbb;' : '';
+                            const textStyle = isBehindCapo ? 'fill: #aaa;' : '';
+
+                            svg += `<circle cx="${x}" cy="${y}" r="16" class="note-circle" style="${circleStyle}"/>`;
+                            svg += `<text x="${x}" y="${y + 5}" class="note" text-anchor="middle" style="${textStyle}">${displayedNote}</text>`;
+                        }
+                    }
+                }
+            }
+
+            // Capo indicator
+            if (capo > 0) {
+                const capoY = fbTop + (capo - 0.5) * fretHeight;
+                svg += `<rect x="${fbLeft - 15}" y="${capoY - 8}" width="${fretboardWidth + 30}" height="16" fill="#333" rx="4" opacity="0.9"/>`;
+                svg += `<text x="${fbLeft + fretboardWidth/2}" y="${capoY + 4}" text-anchor="middle" font-size="10" fill="white" font-weight="bold">CAPO ${capo}</text>`;
+            }
+
+            // Footer
+            const footerY = fbTop + fretboardHeight + 30;
+            svg += `<rect x="${marginLeft-50}" y="${footerY}" width="${fretboardWidth+150}" height="30" rx="5" fill="#f5f5f5" stroke="#ccc"/>`;
+            const footerLine1 = shortStringStart
+                ? `String 1 (far right) = 1st string • 5th string starts at fret ${shortStringStart}`
+                : `String 1 (far right) = 1st string • ${numStrings}-string banjo`;
+            svg += `<text x="${svgWidth/2}" y="${footerY + 12}" text-anchor="middle" font-size="10" fill="#555">${footerLine1}</text>`;
+            svg += `<text x="${svgWidth/2}" y="${footerY + 24}" text-anchor="middle" font-size="10" fill="#555">Fret markers: 3,5,7,10,12,15,17 • Peg indicates 5th string tuning point</text>`;
+
+            svg += '</svg>';
+            return svg;
+        }
+
+        function renderFretboard() {
+            const container = document.getElementById('fretboardContainer');
+            container.innerHTML = generateFretboardSVG(state.selectedFretboardTuning);
+        }
+
+        function populateTuningList() {
+            const list = document.getElementById('tuningList');
+            const familyFilter = state.fretboardFamilyFilter || 'all';
+
+            const families = {
+                'c-family': 'C-Based Tunings',
+                'd-family': 'D-Based Tunings',
+                'g-family': 'G-Based Tunings',
+                'other-family': 'Other (4-String)'
+            };
+
+            let html = '';
+
+            for (const [familyKey, familyName] of Object.entries(families)) {
+                if (familyFilter !== 'all' && familyFilter !== familyKey) continue;
+
+                const tuningsInFamily = Object.entries(TUNINGS_DATA)
+                    .filter(([_, t]) => t.family === familyKey);
+
+                if (tuningsInFamily.length === 0) continue;
+
+                // Add group header if showing all families
+                if (familyFilter === 'all') {
+                    html += `<div class="tuning-list-group">${familyName}</div>`;
+                }
+
+                for (const [name, tuning] of tuningsInFamily) {
+                    const isSelected = name === state.selectedFretboardTuning;
+
+                    // Determine which indices should be lowercase (first occurrence of duplicates)
+                    const lowercaseIdx = new Set();
+                    const seenNotes = new Map();
+                    for (let i = 0; i < tuning.strings.length; i++) {
+                        const normalized = normalizeNote(tuning.strings[i]).toUpperCase();
+                        if (!seenNotes.has(normalized)) {
+                            seenNotes.set(normalized, i);
+                        } else {
+                            lowercaseIdx.add(seenNotes.get(normalized));
+                        }
+                    }
+
+                    const tuningStr = tuning.strings.map((s, idx) => {
+                        let note = displayNote(normalizeNote(s));
+                        // Convert to solfège if enabled
+                        if (state.useSolfege) {
+                            note = toSolfege(note);
+                        }
+                        return lowercaseIdx.has(idx) ? note.toLowerCase() : note;
+                    }).join(' ');
+
+                    html += `
+                        <div class="tuning-list-item ${tuning.family} ${isSelected ? 'selected' : ''}"
+                             data-tuning="${name}">
+                            <span class="tuning-item-name">${name}</span>
+                            <span class="tuning-item-notes">${tuningStr}</span>
+                        </div>
+                    `;
+                }
+            }
+
+            list.innerHTML = html;
+
+            // Add click handlers
+            list.querySelectorAll('.tuning-list-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const tuningName = item.dataset.tuning;
+                    state.selectedFretboardTuning = tuningName;
+                    saveState();
+                    populateTuningList(); // Re-render to update selection
+                    renderFretboard();
+                });
+            });
+        }
+
+        // ============================================
+        // EVENT HANDLERS
+        // ============================================
+        function setupEventListeners() {
+            document.getElementById('familyFilter').addEventListener('change', (e) => {
+                state.familyFilter = e.target.value;
+                saveState();
+                renderTunings();
+            });
+
+            document.getElementById('capoPosition').addEventListener('change', (e) => {
+                state.capoPosition = parseInt(e.target.value) || 0;
+                saveState();
+                renderTunings();
+                renderFretboard();
+            });
+
+            document.getElementById('fretCount').addEventListener('change', (e) => {
+                state.fretCount = parseInt(e.target.value);
+                saveState();
+                renderFretboard();
+            });
+
+            document.getElementById('showNotesToggle').addEventListener('change', (e) => {
+                state.showNotes = e.target.checked;
+                saveState();
+                renderFretboard();
+            });
+
+            document.getElementById('solfegeToggle').addEventListener('change', (e) => {
+                state.useSolfege = e.target.checked;
+                saveState();
+                renderTunings();
+                renderFretboard();
+                populateTuningList();
+            });
+
+            // Fretboard family filter
+            document.getElementById('fretboardFamilyFilter').addEventListener('change', (e) => {
+                state.fretboardFamilyFilter = e.target.value;
+                saveState();
+                populateTuningList();
+            });
+
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    const tabName = e.target.dataset.tab;
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    e.target.classList.add('active');
+                    document.getElementById(`${tabName}-tab`).classList.add('active');
+                });
+            });
+        }
+
+        function resetSettings() {
+            state = {
+                familyFilter: 'all',
+                capoPosition: 0,
+                fretCount: 15,
+                showNotes: true,
+                selectedFretboardTuning: 'Open G',
+                fretboardFamilyFilter: 'all',
+                useSolfege: false
+            };
+            saveState();
+            applyStateToUI();
+            populateTuningList();
+            renderTunings();
+            renderFretboard();
+        }
+
+        function applyStateToUI() {
+            document.getElementById('familyFilter').value = state.familyFilter;
+            document.getElementById('capoPosition').value = state.capoPosition;
+            document.getElementById('fretCount').value = state.fretCount;
+            document.getElementById('showNotesToggle').checked = state.showNotes;
+            document.getElementById('solfegeToggle').checked = state.useSolfege || false;
+            document.getElementById('fretboardFamilyFilter').value = state.fretboardFamilyFilter || 'all';
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        function init() {
+            loadState();
+            applyStateToUI();
+            populateTuningList();
+            setupEventListeners();
+            renderTunings();
+            renderFretboard();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
