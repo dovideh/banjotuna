@@ -837,6 +837,10 @@
                     <input type="checkbox" id="showNotesToggle" checked>
                     <span>Show notes on fretboard</span>
                 </div>
+                <div class="checkbox-container" style="margin-top: 8px;">
+                    <input type="checkbox" id="solfegeToggle">
+                    <span>Use solfège (Do Re Mi)</span>
+                </div>
             </div>
 
             <div class="control-group">
@@ -1059,6 +1063,12 @@
             // Keep D#, C#, F# as sharps
         };
 
+        // Solfège mapping: C=Do, D=Re, E=Mi, F=Fa, G=Sol, A=La, B=Si
+        const SOLFEGE_MAP = {
+            'C': 'Do', 'D': 'Re', 'E': 'Mi', 'F': 'Fa',
+            'G': 'Sol', 'A': 'La', 'B': 'Si'
+        };
+
         function normalizeNote(note) {
             return NOTE_MAP[note] || note.toUpperCase();
         }
@@ -1069,6 +1079,15 @@
                 return DISPLAY_NOTE_MAP[note];
             }
             return note;
+        }
+
+        function toSolfege(note) {
+            // Convert a note to solfège notation
+            // Handle sharps/flats: C# -> Do#, Db -> Reb, etc.
+            const baseNote = note.charAt(0).toUpperCase();
+            const accidental = note.slice(1); // # or b or empty
+            const solfege = SOLFEGE_MAP[baseNote] || baseNote;
+            return solfege + accidental;
         }
 
         function getNoteAtFret(openNote, fret) {
@@ -1394,7 +1413,8 @@
             fretCount: 15,
             showNotes: true,
             selectedFretboardTuning: 'Open G',
-            fretboardFamilyFilter: 'all'
+            fretboardFamilyFilter: 'all',
+            useSolfege: false
         };
 
         function loadState() {
@@ -1439,6 +1459,10 @@
             if (!parsed) return noteStr;
 
             let note = displayNote(parsed.note);
+            // Convert to solfège if enabled
+            if (state.useSolfege) {
+                note = toSolfege(note);
+            }
             // Replace # with sharp symbol, b with flat symbol
             note = note.replace('#', '\u266F').replace('b', '\u266D');
 
@@ -1447,7 +1471,11 @@
 
         function formatSimpleNote(note) {
             // Format a simple note (no octave) for fretboard display
-            const displayed = displayNote(normalizeNote(note));
+            let displayed = displayNote(normalizeNote(note));
+            // Convert to solfège if enabled
+            if (state.useSolfege) {
+                displayed = toSolfege(displayed);
+            }
             return displayed.replace('#', '\u266F').replace('b', '\u266D');
         }
 
@@ -1605,9 +1633,13 @@
 
             // Title - use lowercase for first occurrence of duplicate notes (e.g., fCFAC -> fcFAC)
             const tuningStr = strings.map((s, idx) => {
-                const normalized = normalizeNote(s);
+                let note = displayNote(normalizeNote(s));
+                // Convert to solfège if enabled
+                if (state.useSolfege) {
+                    note = toSolfege(note);
+                }
                 // Use lowercase if this index is marked as first occurrence of a duplicate
-                return lowercaseIndices.has(idx) ? normalized.toLowerCase() : normalized;
+                return lowercaseIndices.has(idx) ? note.toLowerCase() : note;
             }).join('');
             svg += `<text x="${svgWidth / 2}" y="45" class="title" text-anchor="middle">Banjo Fretboard: ${tuningName}</text>`;
             svg += `<text x="${svgWidth / 2}" y="70" class="subtitle" text-anchor="middle">Tuning: ${tuningStr} — ${tuning.description}</text>`;
@@ -1725,7 +1757,11 @@
 
                 // Use lowercase if this is the first occurrence of a duplicate note
                 const baseNote = normalizeNote(note);
-                const displayedBase = displayNote(baseNote);
+                let displayedBase = displayNote(baseNote);
+                // Convert to solfège if enabled
+                if (state.useSolfege) {
+                    displayedBase = toSolfege(displayedBase);
+                }
                 // Apply lowercase if marked, then replace symbols
                 let displayed = lowercaseIndices.has(i) ? displayedBase.toLowerCase() : displayedBase;
                 displayed = displayed.replace('#', '\u266F').replace('b', '\u266D');
@@ -1847,8 +1883,12 @@
                     }
 
                     const tuningStr = tuning.strings.map((s, idx) => {
-                        const normalized = normalizeNote(s);
-                        return lowercaseIdx.has(idx) ? normalized.toLowerCase() : normalized;
+                        let note = displayNote(normalizeNote(s));
+                        // Convert to solfège if enabled
+                        if (state.useSolfege) {
+                            note = toSolfege(note);
+                        }
+                        return lowercaseIdx.has(idx) ? note.toLowerCase() : note;
                     }).join(' ');
 
                     html += `
@@ -1904,6 +1944,14 @@
                 renderFretboard();
             });
 
+            document.getElementById('solfegeToggle').addEventListener('change', (e) => {
+                state.useSolfege = e.target.checked;
+                saveState();
+                renderTunings();
+                renderFretboard();
+                populateTuningList();
+            });
+
             // Fretboard family filter
             document.getElementById('fretboardFamilyFilter').addEventListener('change', (e) => {
                 state.fretboardFamilyFilter = e.target.value;
@@ -1929,7 +1977,8 @@
                 fretCount: 15,
                 showNotes: true,
                 selectedFretboardTuning: 'Open G',
-                fretboardFamilyFilter: 'all'
+                fretboardFamilyFilter: 'all',
+                useSolfege: false
             };
             saveState();
             applyStateToUI();
@@ -1943,6 +1992,7 @@
             document.getElementById('capoPosition').value = state.capoPosition;
             document.getElementById('fretCount').value = state.fretCount;
             document.getElementById('showNotesToggle').checked = state.showNotes;
+            document.getElementById('solfegeToggle').checked = state.useSolfege || false;
             document.getElementById('fretboardFamilyFilter').value = state.fretboardFamilyFilter || 'all';
         }
 
