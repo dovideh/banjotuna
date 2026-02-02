@@ -974,6 +974,17 @@
             padding: 20px 5px;
         }
 
+        .chord-keys-grid .group-separator {
+            background: #1a1a1a;
+            width: 4px;
+            padding: 0;
+            border: none;
+        }
+
+        .chord-keys-grid th.group-separator {
+            background: #1a1a1a;
+        }
+
         @media print {
             .chord-keys-grid-container {
                 overflow: visible;
@@ -1468,6 +1479,18 @@
             'sus4':  { symbol: 'sus4', name: 'Sus4', intervals: [0, 5, 7], degrees: ['1', '4', '5'] },
             'aug':   { symbol: 'aug', name: 'Augmented', intervals: [0, 4, 8], degrees: ['1', '3', '#5'] }
         };
+
+        // Chord types grouped for display with separators between groups
+        const CHORD_TYPE_GROUPS = [
+            ['major', 'minor', 'm7'],  // Group 1
+            ['6', '7'],                 // Group 2
+            ['dim'],                    // Group 3
+            ['sus4'],                   // Group 4
+            ['aug']                     // Group 5
+        ];
+
+        // Ordered list of chord types (flattened groups)
+        const CHORD_TYPE_ORDER = CHORD_TYPE_GROUPS.flat();
 
         // Finger notation mapping
         const FINGER_NOTATION = {
@@ -2397,7 +2420,12 @@
 
                 // Extend line for marker frets
                 if (markerFrets.includes(fret)) {
-                    lineEndX += 20;
+                    if (fret === 5) {
+                        // 5th fret extends all the way to the right edge
+                        lineEndX = svgWidth - 10;
+                    } else {
+                        lineEndX += 20;
+                    }
                 }
 
                 svg += `<line x1="${lineStartX}" y1="${y}" x2="${lineEndX}" y2="${y}" class="fret-line"/>`;
@@ -2792,10 +2820,10 @@
             const container = document.getElementById('chordTypeButtons');
             if (!container) return;
 
-            const typeEntries = Object.entries(CHORD_TYPES);
             container.innerHTML = `
                 <button class="chord-type-btn ${state.chordTypeFilter === 'all' ? 'active' : ''}" data-type="all">All</button>
-                ${typeEntries.map(([key, type]) => {
+                ${CHORD_TYPE_ORDER.map(key => {
+                    const type = CHORD_TYPES[key];
                     const isActive = state.chordTypeFilter === key ? 'active' : '';
                     return `<button class="chord-type-btn ${isActive}" data-type="${key}">${type.name}</button>`;
                 }).join('')}
@@ -2862,9 +2890,9 @@
         }
 
         function renderChordsSingle(container, tuningData, fingerNotation) {
-            // Determine which chord types to show
+            // Determine which chord types to show (use ordered list)
             const typesToShow = state.chordTypeFilter === 'all'
-                ? Object.keys(CHORD_TYPES)
+                ? CHORD_TYPE_ORDER
                 : [state.chordTypeFilter];
 
             let html = '';
@@ -2905,16 +2933,29 @@
         }
 
         function renderChordsGrid(container, tuningData, fingerNotation) {
-            // Determine which chord types to show as columns
+            // Determine which chord types to show as columns (use ordered groups)
             const typesToShow = state.chordTypeFilter === 'all'
-                ? Object.keys(CHORD_TYPES)
+                ? CHORD_TYPE_ORDER
                 : [state.chordTypeFilter];
 
-            // Build table header with chord types
+            // Helper to check if we need a separator after this chord type
+            function needsSeparatorAfter(chordType) {
+                if (state.chordTypeFilter !== 'all') return false;
+                for (let i = 0; i < CHORD_TYPE_GROUPS.length - 1; i++) {
+                    const group = CHORD_TYPE_GROUPS[i];
+                    if (group[group.length - 1] === chordType) return true;
+                }
+                return false;
+            }
+
+            // Build table header with chord types and separators
             let headerHtml = '<tr><th class="key-header">Key</th>';
             typesToShow.forEach(chordType => {
                 const type = CHORD_TYPES[chordType];
                 headerHtml += `<th>${type.name}</th>`;
+                if (needsSeparatorAfter(chordType)) {
+                    headerHtml += '<th class="group-separator"></th>';
+                }
             });
             headerHtml += '</tr>';
 
@@ -2944,6 +2985,10 @@
                                 <div class="grid-no-voicing">Not available</div>
                             </td>
                         `;
+                    }
+
+                    if (needsSeparatorAfter(chordType)) {
+                        rowsHtml += '<td class="group-separator"></td>';
                     }
                 });
 
