@@ -2420,11 +2420,10 @@
 
                 // Extend line for marker frets
                 if (markerFrets.includes(fret)) {
+                    lineEndX += 20;
                     if (fret === 5) {
-                        // 5th fret extends all the way to the right edge
-                        lineEndX = svgWidth - 10;
-                    } else {
-                        lineEndX += 20;
+                        // 5th fret extends to the left edge (where 5th string starts)
+                        lineStartX = 10;
                     }
                 }
 
