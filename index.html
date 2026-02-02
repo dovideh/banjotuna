@@ -46,6 +46,12 @@
             margin: 12mm;
         }
 
+        /* Landscape orientation for chord grid view */
+        @page chord-grid-landscape {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+
         @media print {
             body {
                 background: white;
@@ -63,6 +69,10 @@
                 page-break-after: always;
             }
 
+            .page-break-before {
+                page-break-before: always;
+            }
+
             .tuning-card {
                 break-inside: avoid;
             }
@@ -74,6 +84,30 @@
 
             .tunings-grid {
                 grid-template-columns: 1fr !important;
+            }
+
+            /* Chord grid landscape printing */
+            .chord-keys-grid-container {
+                page: chord-grid-landscape;
+            }
+
+            /* Table header repetition on each page */
+            .chord-keys-grid thead {
+                display: table-header-group;
+            }
+
+            .chord-keys-grid tbody {
+                display: table-row-group;
+            }
+
+            /* Force page break before F#/Gb row */
+            .chord-keys-grid tr.page-break-before {
+                page-break-before: always;
+            }
+
+            /* Keep key rows together */
+            .chord-keys-grid tr {
+                page-break-inside: avoid;
             }
         }
 
@@ -1423,6 +1457,12 @@
             return NOTE_MAP[note] || note.toUpperCase();
         }
 
+        // Check if a note is natural (no sharps or flats)
+        function isNaturalNote(note) {
+            const normalized = normalizeNote(note);
+            return ['C', 'D', 'E', 'F', 'G', 'A', 'B'].includes(normalized);
+        }
+
         function displayNote(note) {
             // Convert internal sharp note to preferred display (mix of flats and sharps)
             if (DISPLAY_NOTE_MAP[note]) {
@@ -1712,14 +1752,40 @@
             return null;
         }
 
+        // Determine chord inversion based on bass note (lowest non-muted string)
+        function getChordInversion(positions) {
+            // Find the lowest (first non-muted) string's degree
+            // Positions are ordered: string 4 (bass), 3, 2, 1
+            for (const pos of positions) {
+                if (!pos.muted && pos.degree) {
+                    const degree = pos.degree;
+                    // Root position: bass is root (1)
+                    if (degree === '1') {
+                        return { type: 'root', label: 'Root', color: null, pattern: 'solid' };
+                    }
+                    // First inversion: bass is third (3 or ♭3)
+                    if (degree === '3' || degree === '♭3') {
+                        return { type: 'first', label: '1st Inv.', color: '#cc0000', pattern: 'diagonal' };
+                    }
+                    // Second inversion: bass is fifth (5, ♭5, or #5)
+                    if (degree === '5' || degree === '♭5' || degree === '#5') {
+                        return { type: 'second', label: '2nd Inv.', color: '#cc9900', pattern: 'crosshatch' };
+                    }
+                    // Other degrees (7th, etc.) - treat as extended inversion
+                    return { type: 'extended', label: degree + ' bass', color: '#666', pattern: 'dots' };
+                }
+            }
+            return { type: 'unknown', label: '', color: null, pattern: null };
+        }
+
         // Generate SVG chord diagram for 4 main strings
         function generateChordDiagramSVG(voicing, chordName, tuningName, fingerNotation = 'numbers') {
             const width = 140;
-            const height = 200;
+            const height = 220;  // Increased height for inversion label
             const marginLeft = 35;
             const marginTop = 35;
             const marginRight = 15;
-            const marginBottom = 25;
+            const marginBottom = 45;  // More space for inversion label
 
             const positions = voicing.positions;
             const numStrings = 4; // Always 4 main strings for chord diagrams
@@ -1729,10 +1795,29 @@
             const stringSpacing = (width - marginLeft - marginRight) / (numStrings - 1);
             const fretSpacing = (height - marginTop - marginBottom) / numFrets;
 
+            // Determine chord inversion
+            const inversion = getChordInversion(positions);
+
             let svg = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`;
 
-            // Background
+            // Pattern definitions for B&W printing
+            svg += `<defs>
+                <pattern id="diagonal-${chordName.replace(/[^a-zA-Z0-9]/g, '')}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                    <line x1="0" y1="0" x2="0" y2="6" stroke="#cc0000" stroke-width="2"/>
+                </pattern>
+                <pattern id="crosshatch-${chordName.replace(/[^a-zA-Z0-9]/g, '')}" width="6" height="6" patternUnits="userSpaceOnUse">
+                    <line x1="0" y1="0" x2="6" y2="6" stroke="#cc9900" stroke-width="1"/>
+                    <line x1="6" y1="0" x2="0" y2="6" stroke="#cc9900" stroke-width="1"/>
+                </pattern>
+            </defs>`;
+
+            // Background with inversion color indicator
             svg += `<rect width="${width}" height="${height}" fill="white"/>`;
+
+            // Inversion color border/indicator at top
+            if (inversion.color) {
+                svg += `<rect x="0" y="0" width="${width}" height="4" fill="${inversion.color}"/>`;
+            }
 
             // Nut (thick line at top) - only show if baseFret is 1
             if (baseFret === 1) {
@@ -1827,6 +1912,13 @@
                     svg += `<text x="${x}" y="${y}" font-size="9" text-anchor="middle" fill="#999">-</text>`;
                 }
             });
+
+            // Inversion label at bottom
+            if (inversion.label) {
+                const invLabelY = marginTop + numFrets * fretSpacing + 32;
+                const labelColor = inversion.color || '#333';
+                svg += `<text x="${width / 2}" y="${invLabelY}" font-size="10" font-weight="bold" text-anchor="middle" fill="${labelColor}">${inversion.label}</text>`;
+            }
 
             svg += '</svg>';
             return svg;
@@ -2329,7 +2421,7 @@
             // SVG dimensions
             const marginLeft = 100;
             const marginRight = 150;
-            const marginTop = 140;
+            const marginTop = capo > 0 ? 160 : 140;  // Extra space for effective tuning display
             const marginBottom = 80;
             const stringSpacing = 55;
             const fretHeight = 50;
@@ -2359,6 +2451,7 @@
                 .fret-number { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #333; }
                 .note { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #000; }
                 .note-circle { fill: white; stroke: #000; stroke-width: 1.5; }
+                .note-circle-natural { fill: white; stroke: #000; stroke-width: 4; }
                 .fret-line { stroke: #000; stroke-width: 2; }
                 .string-line { stroke: #444; stroke-width: 1.5; }
                 .nut { stroke: #000; stroke-width: 6; }
@@ -2381,8 +2474,39 @@
                 // Use lowercase if this index is marked as first occurrence of a duplicate
                 return lowercaseIndices.has(idx) ? note.toLowerCase() : note;
             }).join('');
+
+            // Calculate effective tuning with capo
+            let effectiveTuningStr = '';
+            if (capo > 0) {
+                effectiveTuningStr = strings.map((s, idx) => {
+                    // For short string, calculate from its actual starting point
+                    let effectiveCapo = capo;
+                    if (idx === shortStringIdx && shortStringStart !== null) {
+                        // Short string: capo only affects it if capo >= shortStringStart
+                        if (capo < shortStringStart) {
+                            effectiveCapo = 0; // Capo doesn't affect short string
+                        } else {
+                            effectiveCapo = capo - (shortStringStart - 1);
+                        }
+                    }
+                    const transposedNote = getNoteAtFret(s, effectiveCapo);
+                    let note = displayNote(normalizeNote(transposedNote));
+                    if (state.useSolfege) {
+                        note = toSolfege(note);
+                    }
+                    return lowercaseIndices.has(idx) ? note.toLowerCase() : note;
+                }).join('');
+            }
+
             svg += `<text x="${svgWidth / 2}" y="45" class="title" text-anchor="middle">Banjo Fretboard: ${tuningName}</text>`;
-            svg += `<text x="${svgWidth / 2}" y="70" class="subtitle" text-anchor="middle">Tuning: ${tuningStr} — ${tuning.description}</text>`;
+
+            // Subtitle with effective tuning when capo is applied
+            if (capo > 0) {
+                svg += `<text x="${svgWidth / 2}" y="70" class="subtitle" text-anchor="middle">Open Tuning: ${tuningStr} — ${tuning.description}</text>`;
+                svg += `<text x="${svgWidth / 2}" y="90" class="subtitle" text-anchor="middle" style="fill: #c00; font-weight: bold;">Capo ${capo}: Effective Tuning: ${effectiveTuningStr}</text>`;
+            } else {
+                svg += `<text x="${svgWidth / 2}" y="70" class="subtitle" text-anchor="middle">Tuning: ${tuningStr} — ${tuning.description}</text>`;
+            }
 
             // Fret markers (on fretboard face)
             for (const fret of markerFrets) {
@@ -2539,21 +2663,25 @@
                             const note = getNoteAtFret(openNote, effectiveFret);
                             const displayedNote = formatSimpleNote(note);
 
-                            // Gray out notes behind capo
+                            // Gray out notes behind capo, use 8-ball style for natural notes
+                            const isNatural = isNaturalNote(note);
+                            const circleClass = isNatural ? 'note-circle-natural' : 'note-circle';
                             const circleStyle = isBehindCapo ? 'fill: #e0e0e0; stroke: #bbb;' : '';
                             const textStyle = isBehindCapo ? 'fill: #aaa;' : '';
 
-                            svg += `<circle cx="${x}" cy="${y}" r="16" class="note-circle" style="${circleStyle}"/>`;
+                            svg += `<circle cx="${x}" cy="${y}" r="16" class="${circleClass}" style="${circleStyle}"/>`;
                             svg += `<text x="${x}" y="${y + 5}" class="note" text-anchor="middle" style="${textStyle}">${displayedNote}</text>`;
                         } else {
                             const note = getNoteAtFret(openNote, fret);
                             const displayedNote = formatSimpleNote(note);
 
-                            // Gray out notes behind capo
+                            // Gray out notes behind capo, use 8-ball style for natural notes
+                            const isNatural = isNaturalNote(note);
+                            const circleClass = isNatural ? 'note-circle-natural' : 'note-circle';
                             const circleStyle = isBehindCapo ? 'fill: #e0e0e0; stroke: #bbb;' : '';
                             const textStyle = isBehindCapo ? 'fill: #aaa;' : '';
 
-                            svg += `<circle cx="${x}" cy="${y}" r="16" class="note-circle" style="${circleStyle}"/>`;
+                            svg += `<circle cx="${x}" cy="${y}" r="16" class="${circleClass}" style="${circleStyle}"/>`;
                             svg += `<text x="${x}" y="${y + 5}" class="note" text-anchor="middle" style="${textStyle}">${displayedNote}</text>`;
                         }
                     }
@@ -2960,8 +3088,10 @@
 
             // Build table rows for each key
             let rowsHtml = '';
-            CHORD_KEYS.forEach(key => {
-                rowsHtml += `<tr><td class="key-cell">${key.display}</td>`;
+            CHORD_KEYS.forEach((key, keyIndex) => {
+                // Add page break class before F#/Gb (index 6) for print
+                const pageBreakClass = key.root === 'F#' ? ' class="page-break-before"' : '';
+                rowsHtml += `<tr${pageBreakClass}><td class="key-cell">${key.display}</td>`;
 
                 typesToShow.forEach(chordType => {
                     const type = CHORD_TYPES[chordType];
