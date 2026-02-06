@@ -333,7 +333,7 @@ function generateFretboardSVG(tuningName) {
 
     // SVG dimensions
     const marginLeft = 100;
-    const marginRight = 150;
+    const marginRight = 250;  // Extra space for inversion annotation boxes (140px wide)
     const marginTop = capo > 0 ? 160 : 140;  // Extra space for effective tuning display
     const marginBottom = 80;
     const stringSpacing = 55;
