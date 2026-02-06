@@ -1110,3 +1110,274 @@ body {
         page-break-inside: avoid;
     }
 }
+
+/* ============================================
+   INVERSION OPTIONS ROW
+   ============================================ */
+.inversion-options-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    width: 100%;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+    margin-top: 10px;
+    align-items: flex-end;
+}
+
+/* Voicing Mode Buttons */
+.voicing-mode-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.voicing-mode-btn {
+    padding: 6px 12px;
+    border: 2px solid var(--border-color);
+    background: white;
+    cursor: pointer;
+    font-size: 12px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.voicing-mode-btn:hover {
+    background: #f0f0f0;
+}
+
+.voicing-mode-btn.active {
+    background: var(--g-family);
+    color: white;
+    border-color: var(--g-family);
+}
+
+/* Inversion Filter Checkboxes */
+.inversion-filter-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.inversion-check {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.inversion-check:hover {
+    background: #f5f5f5;
+}
+
+.inversion-check.blue {
+    border-color: #3366cc;
+    color: #3366cc;
+}
+
+.inversion-check.red {
+    border-color: #cc3333;
+    color: #cc3333;
+}
+
+.inversion-check.yellow {
+    border-color: #cc9900;
+    color: #996600;
+}
+
+.inversion-check.green {
+    border-color: #339933;
+    color: #339933;
+}
+
+.inversion-check input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+
+/* Audio Controls */
+.audio-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.audio-mode-toggle {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.audio-mode-toggle label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+/* Metronome Controls */
+.metronome-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.bpm-input {
+    width: 60px;
+    padding: 6px 8px;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 13px;
+    text-align: center;
+}
+
+.bpm-label {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.metronome-btn {
+    padding: 6px 14px;
+    font-size: 12px;
+}
+
+.metronome-btn.active {
+    background: var(--c-family);
+    border-color: var(--c-family);
+    color: white;
+}
+
+/* Metronome Flash Animation */
+@keyframes metronomeFlash {
+    0% { outline: 3px solid transparent; }
+    50% { outline: 3px solid var(--c-family); }
+    100% { outline: 3px solid transparent; }
+}
+
+.metronome-flash {
+    animation: metronomeFlash 0.3s ease-out;
+}
+
+/* ============================================
+   TESTS TAB
+   ============================================ */
+.test-controls {
+    margin-bottom: 15px;
+}
+
+.test-results-container {
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.test-placeholder {
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+}
+
+.test-results-header {
+    font-size: 16px;
+    padding: 10px 15px;
+    background: var(--bg-light);
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.test-results-list {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+}
+
+.test-result-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: baseline;
+}
+
+.test-result-item:last-child {
+    border-bottom: none;
+}
+
+.test-result-item.test-pass .test-status {
+    color: #339933;
+    font-weight: bold;
+}
+
+.test-result-item.test-fail .test-status {
+    color: #cc3333;
+    font-weight: bold;
+}
+
+.test-id {
+    color: var(--text-muted);
+    min-width: 80px;
+}
+
+.test-desc {
+    flex: 1;
+}
+
+.test-errors {
+    width: 100%;
+    color: #cc3333;
+    font-size: 12px;
+    padding: 5px 0 0 90px;
+}
+
+/* Inversion Color Legend */
+.inversion-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+}
+
+.legend-swatch {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+/* Code Block */
+.code-block {
+    background: #1a1a1a;
+    color: #e0e0e0;
+    padding: 15px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    overflow-x: auto;
+    white-space: pre;
+}
+
+/* Play button hover effect in SVG */
+.play-btn:hover circle {
+    fill-opacity: 1;
+}
+
+.play-btn:hover {
+    opacity: 0.9;
+}

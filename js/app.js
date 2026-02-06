@@ -11,10 +11,17 @@ let state = {
     selectedFretboardTuning: 'Open G',
     fretboardFamilyFilter: 'all',
     useSolfege: false,
-    // Chord inversion state
+    // Chord inversion state (Universal Generator)
     showInversions: false,
     inversionRootNote: 'G',
     inversionChordType: 'major',
+    inversionChordFamily: 'MAJOR',      // Key into CHORD_FAMILIES
+    inversionVoicingMode: 'full',        // 'full' or 'partial'
+    inversionFilters: [],                // Array of inversion names to show (empty = all)
+    // Audio/Metronome state
+    audioPlayMode: 'arpeggio',           // 'arpeggio' or 'block'
+    metronomeBPM: 80,
+    metronomeBeatsPerShape: 4,
     // Chord tab state
     chordTuning: 'Open G',
     chordKey: 'G',
@@ -42,6 +49,26 @@ function saveState() {
 function renderFretboard() {
     const container = document.getElementById('fretboardContainer');
     container.innerHTML = generateFretboardSVG(state.selectedFretboardTuning);
+
+    // Attach play button handlers for inversion shapes
+    if (state.showInversions && typeof playShape === 'function') {
+        container.querySelectorAll('.play-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.dataset.shapeIdx);
+                const tuning = TUNINGS_DATA[state.selectedFretboardTuning];
+                if (!tuning) return;
+                const familyKey = state.inversionChordFamily || 'MAJOR';
+                const shapes = generateChordShapes(state.inversionRootNote, familyKey, tuning, state.inversionVoicingMode, state.fretCount);
+                const filteredShapes = state.inversionFilters.length > 0
+                    ? filterShapesByInversion(shapes, state.inversionFilters)
+                    : shapes;
+                const visibleShapes = filteredShapes.filter(s => s.highestFret <= state.fretCount && s.lowestFret >= 1);
+                if (idx < visibleShapes.length) {
+                    playShape(visibleShapes[idx], tuning, state.audioPlayMode);
+                }
+            });
+        });
+    }
 }
 
 function populateTuningList() {
@@ -158,19 +185,22 @@ function setupEventListeners() {
     // Chord inversion controls (button-based in fretboard section)
     document.querySelectorAll('#inversionTypeButtons .chord-type-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const type = e.target.dataset.type;
+            const familyKey = e.target.dataset.family;
             const isActive = e.target.classList.contains('active');
 
-            // Toggle the button
+            // Deactivate all type buttons first
+            document.querySelectorAll('#inversionTypeButtons .chord-type-btn').forEach(b => b.classList.remove('active'));
+
             if (isActive) {
-                e.target.classList.remove('active');
                 state.showInversions = false;
                 document.getElementById('inversionKeyContainer').style.display = 'none';
+                document.getElementById('inversionOptionsContainer').style.display = 'none';
             } else {
                 e.target.classList.add('active');
                 state.showInversions = true;
-                state.inversionChordType = type;
+                state.inversionChordFamily = familyKey;
                 document.getElementById('inversionKeyContainer').style.display = 'block';
+                document.getElementById('inversionOptionsContainer').style.display = 'flex';
             }
             saveState();
             renderFretboard();
@@ -179,13 +209,95 @@ function setupEventListeners() {
 
     document.querySelectorAll('#inversionKeyButtons .key-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            // Remove active from all key buttons
             document.querySelectorAll('#inversionKeyButtons .key-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
             state.inversionRootNote = e.target.dataset.key;
             saveState();
             renderFretboard();
         });
+    });
+
+    // Voicing Mode toggle
+    document.querySelectorAll('#voicingModeButtons .voicing-mode-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('#voicingModeButtons .voicing-mode-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            state.inversionVoicingMode = e.target.dataset.mode;
+            saveState();
+            renderFretboard();
+        });
+    });
+
+    // Inversion filter checkboxes
+    document.querySelectorAll('#inversionFilterChecks input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', () => {
+            const checked = [];
+            document.querySelectorAll('#inversionFilterChecks input[type="checkbox"]:checked').forEach(c => {
+                checked.push(c.value);
+            });
+            state.inversionFilters = checked;
+            saveState();
+            renderFretboard();
+        });
+    });
+
+    // Audio play mode toggle
+    document.querySelectorAll('input[name="audioPlayMode"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            state.audioPlayMode = document.querySelector('input[name="audioPlayMode"]:checked')?.value || 'arpeggio';
+            saveState();
+        });
+    });
+
+    // Metronome controls
+    const metronomeToggle = document.getElementById('metronomeToggle');
+    if (metronomeToggle) {
+        metronomeToggle.addEventListener('click', () => {
+            const tuning = TUNINGS_DATA[state.selectedFretboardTuning];
+            if (!tuning) return;
+            const familyKey = state.inversionChordFamily || 'MAJOR';
+            const shapes = generateChordShapes(state.inversionRootNote, familyKey, tuning, state.inversionVoicingMode, state.fretCount);
+            const isRunning = toggleMetronome(shapes, tuning, {
+                bpm: state.metronomeBPM,
+                cycleMode: true,
+                playMode: state.audioPlayMode,
+                beatsPerShape: state.metronomeBeatsPerShape
+            });
+            metronomeToggle.textContent = isRunning ? 'Stop' : 'Start';
+            metronomeToggle.classList.toggle('active', isRunning);
+        });
+    }
+
+    const bpmInput = document.getElementById('metronomeBPM');
+    if (bpmInput) {
+        bpmInput.addEventListener('change', (e) => {
+            state.metronomeBPM = parseInt(e.target.value) || 80;
+            saveState();
+            if (typeof setMetronomeBPM === 'function') {
+                setMetronomeBPM(state.metronomeBPM);
+            }
+        });
+    }
+
+    // Test runner button
+    const testBtn = document.getElementById('runTestsBtn');
+    if (testBtn) {
+        testBtn.addEventListener('click', () => {
+            if (typeof renderTestResults === 'function') {
+                renderTestResults('testResultsContainer');
+            }
+        });
+    }
+
+    // Listen for metronome shape change events (visual cue)
+    document.addEventListener('metronome-shape-change', (e) => {
+        const detail = e.detail;
+        // Flash the fretboard to indicate current shape
+        const fretboardEl = document.getElementById('fretboardContainer');
+        if (fretboardEl) {
+            fretboardEl.classList.add('metronome-flash');
+            setTimeout(() => fretboardEl.classList.remove('metronome-flash'), 200);
+        }
     });
 
     // Fretboard family filter
@@ -207,6 +319,7 @@ function setupEventListeners() {
 }
 
 function resetSettings() {
+    if (typeof stopMetronome === 'function') stopMetronome();
     state = {
         familyFilter: 'all',
         capoPosition: 0,
@@ -218,6 +331,12 @@ function resetSettings() {
         showInversions: false,
         inversionRootNote: 'G',
         inversionChordType: 'major',
+        inversionChordFamily: 'MAJOR',
+        inversionVoicingMode: 'full',
+        inversionFilters: [],
+        audioPlayMode: 'arpeggio',
+        metronomeBPM: 80,
+        metronomeBeatsPerShape: 4,
         chordTuning: 'Open G',
         chordKey: 'G',
         chordTypeFilter: 'all',
@@ -240,22 +359,46 @@ function applyStateToUI() {
     document.getElementById('solfegeToggle').checked = state.useSolfege || false;
     document.getElementById('fretboardFamilyFilter').value = state.fretboardFamilyFilter || 'all';
 
-    // Inversion controls (button-based)
-    const inversionTypeBtn = document.querySelector('#inversionTypeButtons .chord-type-btn[data-type="major"]');
-    if (inversionTypeBtn) {
-        if (state.showInversions) {
-            inversionTypeBtn.classList.add('active');
-            document.getElementById('inversionKeyContainer').style.display = 'block';
+    // Inversion controls (button-based, multi-family)
+    document.querySelectorAll('#inversionTypeButtons .chord-type-btn').forEach(btn => {
+        if (state.showInversions && btn.dataset.family === state.inversionChordFamily) {
+            btn.classList.add('active');
         } else {
-            inversionTypeBtn.classList.remove('active');
-            document.getElementById('inversionKeyContainer').style.display = 'none';
+            btn.classList.remove('active');
         }
+    });
+
+    const invKeyContainer = document.getElementById('inversionKeyContainer');
+    const invOptionsContainer = document.getElementById('inversionOptionsContainer');
+    if (invKeyContainer) {
+        invKeyContainer.style.display = state.showInversions ? 'block' : 'none';
+    }
+    if (invOptionsContainer) {
+        invOptionsContainer.style.display = state.showInversions ? 'flex' : 'none';
     }
 
     // Set active key button
     document.querySelectorAll('#inversionKeyButtons .key-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.key === (state.inversionRootNote || 'G'));
     });
+
+    // Voicing mode buttons
+    document.querySelectorAll('#voicingModeButtons .voicing-mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === (state.inversionVoicingMode || 'full'));
+    });
+
+    // Inversion filter checkboxes
+    document.querySelectorAll('#inversionFilterChecks input[type="checkbox"]').forEach(cb => {
+        cb.checked = state.inversionFilters && state.inversionFilters.includes(cb.value);
+    });
+
+    // Audio play mode
+    const audioRadio = document.querySelector(`input[name="audioPlayMode"][value="${state.audioPlayMode || 'arpeggio'}"]`);
+    if (audioRadio) audioRadio.checked = true;
+
+    // Metronome BPM
+    const bpmInput = document.getElementById('metronomeBPM');
+    if (bpmInput) bpmInput.value = state.metronomeBPM || 80;
 
     // Chord tab UI
     const chordTuningSelect = document.getElementById('chordTuningSelect');

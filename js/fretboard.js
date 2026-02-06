@@ -124,180 +124,194 @@ function renderTunings() {
 }
 
 // ============================================
-// CHORD INVERSION CALCULATION
+// CHORD INVERSION VISUALIZATION (Universal)
+// Uses inversions.js generateChordShapes() engine
 // ============================================
 
-// Calculate all major chord inversions for a root note on strings 4-3-2-1
-// Returns array of inversion objects with fret positions
-function calculateMajorInversions(rootNote, tuningStrings, maxFret = 15) {
-    // Major chord intervals: Root=0, 3rd=4, 5th=7
-    const ROOT = 0, THIRD = 4, FIFTH = 7;
-
-    // Get pitch class of root note
-    const rootPitch = noteToPitchClass(rootNote);
-    const thirdPitch = (rootPitch + THIRD) % 12;
-    const fifthPitch = (rootPitch + FIFTH) % 12;
-
-    // For Open G tuning, strings 4-3-2-1 are indices 1,2,3,4 (D,G,B,D)
-    // We use the 4 main strings for chord shapes
-    const mainStrings = tuningStrings.slice(1, 5); // D, G, B, D
-    const stringOpenPitches = mainStrings.map(s => noteToPitchClass(normalizeNote(s)));
-
-    // Find fret for a target pitch on a given string
-    function findFret(stringPitch, targetPitch, startFret = 0) {
-        const diff = (targetPitch - stringPitch + 12) % 12;
-        let fret = diff;
-        if (fret < startFret) fret += 12;
-        return fret;
-    }
-
-    // Three inversion patterns (intervals on strings 4-3-2-1):
-    // Root Form: 1-3-5-1 (root on string 4)
-    // 1st Inversion: 3-5-1-3 (3rd on string 4)
-    // 2nd Inversion: 5-1-3-5 (5th on string 4)
-    const inversionPatterns = [
-        { name: 'Root Form', type: 'root', intervals: [ROOT, THIRD, FIFTH, ROOT], bassNote: 'Root', color: '#3366cc', label: '1 - 3 - 5 - 1' },
-        { name: '1st Inversion', type: 'first', intervals: [THIRD, FIFTH, ROOT, THIRD], bassNote: '3rd', color: '#cc3333', label: '3 - 5 - 1 - 3' },
-        { name: '2nd Inversion', type: 'second', intervals: [FIFTH, ROOT, THIRD, FIFTH], bassNote: '5th', color: '#cc9900', label: '5 - 1 - 3 - 5' }
-    ];
-
-    const inversions = [];
-
-    // Find all occurrences of each inversion pattern
-    for (const pattern of inversionPatterns) {
-        // Calculate target pitches for each string
-        const targetPitches = pattern.intervals.map(interval => (rootPitch + interval) % 12);
-
-        // Find base fret positions (lowest occurrence)
-        const baseFrets = [];
-        for (let i = 0; i < 4; i++) {
-            baseFrets.push(findFret(stringOpenPitches[i], targetPitches[i], 0));
-        }
-
-        // Find the minimum fret to normalize the shape
-        const minFret = Math.min(...baseFrets.filter(f => f > 0));
-        const maxFretInShape = Math.max(...baseFrets);
-
-        // Find all occurrences within the fret range
-        for (let offset = 0; offset <= maxFret; offset += 12) {
-            const frets = baseFrets.map(f => f === 0 ? 0 : f + offset - (minFret > 0 ? minFret - baseFrets.find(bf => bf === minFret) : 0));
-            const adjustedFrets = baseFrets.map(f => {
-                let adjusted = f + offset;
-                // Handle open strings (fret 0)
-                if (f === 0 && offset === 0) return 0;
-                if (f === 0 && offset > 0) adjusted = 12 + offset;
-                while (adjusted > maxFret + 5) adjusted -= 12;
-                return adjusted;
-            });
-
-            // Check if this shape is within the displayable range
-            const shapeFrets = adjustedFrets.filter(f => f >= 0);
-            if (shapeFrets.length > 0 && Math.min(...shapeFrets) <= maxFret) {
-                inversions.push({
-                    ...pattern,
-                    frets: adjustedFrets,
-                    baseFret: Math.min(...adjustedFrets.filter(f => f > 0)) || 0
-                });
-            }
-        }
-    }
-
-    // Sort by base fret position
-    inversions.sort((a, b) => a.baseFret - b.baseFret);
-
-    return inversions;
-}
-
-// Render chord inversions on fretboard SVG
+/**
+ * Render chord inversions on fretboard SVG using the Universal Shape Generator.
+ * Supports Major, Dom7, Maj7, Min7 and both Full and Partial voicing modes.
+ */
 function renderInversionsOnFretboard(svg, rootNote, tuning, fbLeft, fbTop, stringSpacing, fretHeight, numFrets, svgWidth) {
-    const inversions = calculateMajorInversions(rootNote, tuning.strings, numFrets);
+    const chordFamilyKey = state.inversionChordFamily || 'MAJOR';
+    const voicingMode = state.inversionVoicingMode || 'full';
+    const inversionFilters = state.inversionFilters || [];
+
+    // Generate shapes using the universal engine
+    let shapes = generateChordShapes(rootNote, chordFamilyKey, tuning, voicingMode, numFrets);
+
+    // Apply inversion filter if set
+    if (inversionFilters.length > 0) {
+        shapes = filterShapesByInversion(shapes, inversionFilters);
+    }
+
     const displayedNote = displayNote(rootNote);
     const numStrings = tuning.strings.length;
     const fbRight = fbLeft + (numStrings - 1) * stringSpacing;
+    const activeStrings = getActiveStrings(tuning);
+    const familyObj = CHORD_FAMILIES[chordFamilyKey];
 
-    // Filter inversions that are fully visible
-    const visibleInversions = inversions.filter(inv => {
-        const maxFretInShape = Math.max(...inv.frets);
-        return maxFretInShape <= numFrets && inv.baseFret >= 1;
+    // Filter to shapes fully visible on the fretboard
+    const visibleShapes = shapes.filter(shape => {
+        return shape.highestFret <= numFrets && shape.lowestFret >= 1;
     });
 
-    // Render each inversion
-    visibleInversions.forEach((inv, idx) => {
-        // Calculate positions (strings 4-3-2-1 are at indices 1,2,3,4 in the display)
-        const positions = [];
-        for (let i = 0; i < 4; i++) {
-            const stringIndex = i + 1; // Skip 5th string (index 0)
-            const x = fbLeft + stringIndex * stringSpacing;
-            const fret = inv.frets[i];
-            const y = fbTop + (fret - 0.5) * fretHeight;
-            positions.push({ x, y, fret, stringIndex });
-        }
+    // Limit visible shapes to avoid overcrowding
+    const maxVisible = 12;
+    const displayShapes = visibleShapes.slice(0, maxVisible);
 
-        // Draw colored overlay connecting the notes (triangle or polygon)
+    // Render each shape
+    displayShapes.forEach((shape, idx) => {
+        const color = shape.classification.color;
+        const shapeType = shape.classification.shape;
+
+        // Calculate SVG positions for each note
+        const positions = shape.notes.map(note => {
+            const displayIdx = note.stringIndex !== undefined ? note.stringIndex : note.localStringIndex;
+            const x = fbLeft + displayIdx * stringSpacing;
+            const y = fbTop + (note.fret - 0.5) * fretHeight;
+            return { x, y, fret: note.fret, stringIndex: displayIdx, note: note };
+        });
+
         const validPositions = positions.filter(p => p.fret > 0 && p.fret <= numFrets);
-        if (validPositions.length >= 3) {
-            // Create polygon points
-            const points = validPositions.map(p => `${p.x},${p.y}`).join(' ');
-            svg += `<polygon points="${points}" fill="${inv.color}" fill-opacity="0.25" stroke="${inv.color}" stroke-width="2"/>`;
+
+        // Draw shape overlay based on classification
+        if (validPositions.length >= 2) {
+            if (shapeType === 'triangle' && validPositions.length >= 3) {
+                const points = validPositions.map(p => `${p.x},${p.y}`).join(' ');
+                svg += `<polygon points="${points}" fill="${color}" fill-opacity="0.2" stroke="${color}" stroke-width="2"/>`;
+            } else if (shapeType === 'rectangle') {
+                const xs = validPositions.map(p => p.x);
+                const ys = validPositions.map(p => p.y);
+                const minX = Math.min(...xs) - 8;
+                const maxX = Math.max(...xs) + 8;
+                const minY = Math.min(...ys) - 8;
+                const maxY = Math.max(...ys) + 8;
+                svg += `<rect x="${minX}" y="${minY}" width="${maxX - minX}" height="${maxY - minY}" fill="${color}" fill-opacity="0.2" stroke="${color}" stroke-width="2" rx="3"/>`;
+            } else if (shapeType === 'diamond' && validPositions.length >= 2) {
+                // Diamond: use the center and extremes
+                const cx = validPositions.reduce((s, p) => s + p.x, 0) / validPositions.length;
+                const cy = validPositions.reduce((s, p) => s + p.y, 0) / validPositions.length;
+                const xs = validPositions.map(p => p.x);
+                const ys = validPositions.map(p => p.y);
+                const dx = (Math.max(...xs) - Math.min(...xs)) / 2 + 10;
+                const dy = (Math.max(...ys) - Math.min(...ys)) / 2 + 10;
+                const diamondPoints = `${cx},${cy - dy} ${cx + dx},${cy} ${cx},${cy + dy} ${cx - dx},${cy}`;
+                svg += `<polygon points="${diamondPoints}" fill="${color}" fill-opacity="0.15" stroke="${color}" stroke-width="2"/>`;
+            } else {
+                // Fallback: polygon
+                const points = validPositions.map(p => `${p.x},${p.y}`).join(' ');
+                svg += `<polygon points="${points}" fill="${color}" fill-opacity="0.2" stroke="${color}" stroke-width="2"/>`;
+            }
         }
 
         // Draw dots on chord positions
         positions.forEach(pos => {
             if (pos.fret > 0 && pos.fret <= numFrets) {
-                svg += `<circle cx="${pos.x}" cy="${pos.y}" r="12" fill="${inv.color}" fill-opacity="0.8" stroke="white" stroke-width="2"/>`;
+                svg += `<circle cx="${pos.x}" cy="${pos.y}" r="12" fill="${color}" fill-opacity="0.85" stroke="white" stroke-width="2"/>`;
+                // Show degree inside dot
+                if (pos.note && pos.note.degree) {
+                    svg += `<text x="${pos.x}" y="${pos.y + 4}" text-anchor="middle" font-size="9" font-weight="bold" fill="white">${pos.note.degree}</text>`;
+                }
             }
         });
 
-        // Annotation box on the right side (past fret labels and symbols)
+        // Draw open string indicators (fret 0)
+        positions.forEach(pos => {
+            if (pos.fret === 0) {
+                const openY = fbTop - 15;
+                svg += `<circle cx="${pos.x}" cy="${openY}" r="8" fill="none" stroke="${color}" stroke-width="2.5"/>`;
+                if (pos.note && pos.note.degree) {
+                    svg += `<text x="${pos.x}" y="${openY + 3}" text-anchor="middle" font-size="8" font-weight="bold" fill="${color}">${pos.note.degree}</text>`;
+                }
+            }
+        });
+
+        // Annotation box (SRS Section 4.2)
         const annotationX = fbRight + 150;
-        const annotationY = fbTop + (inv.baseFret - 0.5) * fretHeight;
+        const annotationY = fbTop + (shape.lowestFret - 0.5) * fretHeight;
 
-        if (inv.baseFret <= numFrets - 2) {
-            // Background for annotation
-            svg += `<rect x="${annotationX}" y="${annotationY - 30}" width="140" height="70" fill="white" stroke="${inv.color}" stroke-width="2" rx="5"/>`;
+        if (shape.lowestFret <= numFrets - 2) {
+            const boxHeight = 90;
+            const boxWidth = 160;
 
-            // Chord name and inversion type
-            svg += `<text x="${annotationX + 70}" y="${annotationY - 12}" text-anchor="middle" font-size="12" font-weight="bold" fill="${inv.color}">"${displayedNote}" CHORD</text>`;
-            svg += `<text x="${annotationX + 70}" y="${annotationY + 5}" text-anchor="middle" font-size="11" font-weight="bold" fill="#333">${inv.name.toUpperCase()}</text>`;
+            // Background
+            svg += `<rect x="${annotationX}" y="${annotationY - 35}" width="${boxWidth}" height="${boxHeight}" fill="white" stroke="${color}" stroke-width="2" rx="5"/>`;
+
+            // Header: {Root} {ChordType} {ShapeType}
+            svg += `<text x="${annotationX + boxWidth/2}" y="${annotationY - 17}" text-anchor="middle" font-size="11" font-weight="bold" fill="${color}">${displayedNote} ${familyObj.name}</text>`;
+
+            // Shape name
+            svg += `<text x="${annotationX + boxWidth/2}" y="${annotationY - 2}" text-anchor="middle" font-size="10" font-weight="bold" fill="#333">${shape.classification.name.toUpperCase()}</text>`;
+
+            // Sub-header: Relative Position
+            if (shape.relativePosition) {
+                svg += `<text x="${annotationX + boxWidth/2}" y="${annotationY + 12}" text-anchor="middle" font-size="9" fill="#666">${shape.relativePosition}</text>`;
+            }
+
+            // Movable Math
+            const movableInfo = getMovableShapeInfo(shape);
+            if (movableInfo) {
+                svg += `<text x="${annotationX + boxWidth/2}" y="${annotationY + 25}" text-anchor="middle" font-size="9" fill="#888">${movableInfo.description}</text>`;
+            }
 
             // Bass note info
-            svg += `<text x="${annotationX + 70}" y="${annotationY + 20}" text-anchor="middle" font-size="10" fill="#666">${inv.bassNote} is bass note</text>`;
+            svg += `<text x="${annotationX + boxWidth/2}" y="${annotationY + 38}" text-anchor="middle" font-size="9" fill="#666">${shape.bassNote} is bass note</text>`;
 
             // Interval structure
-            svg += `<text x="${annotationX + 70}" y="${annotationY + 35}" text-anchor="middle" font-size="10" fill="#666">[${inv.label}]</text>`;
+            svg += `<text x="${annotationX + boxWidth/2}" y="${annotationY + 50}" text-anchor="middle" font-size="9" fill="#666">[${shape.intervals.join(' - ')}]</text>`;
+        }
+
+        // Play button area (for audio)
+        if (shape.lowestFret <= numFrets - 2 && typeof playShape === 'function') {
+            const btnX = annotationX + 130;
+            const btnY = annotationY - 33;
+            svg += `<g class="play-btn" data-shape-idx="${idx}" style="cursor:pointer;">`;
+            svg += `<circle cx="${btnX}" cy="${btnY + 5}" r="8" fill="${color}" fill-opacity="0.8"/>`;
+            svg += `<polygon points="${btnX - 3},${btnY + 1} ${btnX - 3},${btnY + 9} ${btnX + 5},${btnY + 5}" fill="white"/>`;
+            svg += `</g>`;
         }
     });
 
-    // Draw 5-fret rule connectors between consecutive inversions
-    for (let i = 0; i < visibleInversions.length - 1; i++) {
-        const current = visibleInversions[i];
-        const next = visibleInversions[i + 1];
+    // Draw connector arrows (generalized 5-Fret Rule, SRS Section 3.2)
+    const connectors = findShapeConnectors(displayShapes, tuning);
+    const tuningInterval = calculateTuningInterval(tuning);
 
-        // The rule: 3rd string of current -> 4th string of next (5 frets higher)
-        // String 3 is at index 2 (0-indexed in our positions), String 4 is at index 1
-        const fromStringIdx = 2; // 3rd string (G string)
-        const toStringIdx = 1;   // 4th string (D string)
+    for (const conn of connectors) {
+        const fromShape = conn.from;
+        const toShape = conn.to;
 
-        const fromX = fbLeft + (fromStringIdx + 1) * stringSpacing;
-        const fromY = fbTop + (current.frets[fromStringIdx] - 0.5) * fretHeight;
-        const toX = fbLeft + (toStringIdx + 1) * stringSpacing;
-        const toY = fbTop + (next.frets[toStringIdx] - 0.5) * fretHeight;
+        // Find appropriate note positions for the arrow
+        const fromNotes = fromShape.notes;
+        const toNotes = toShape.notes;
 
-        if (current.frets[fromStringIdx] <= numFrets && next.frets[toStringIdx] <= numFrets) {
-            // Draw arrow
+        if (fromNotes.length === 0 || toNotes.length === 0) continue;
+
+        // Arrow from the highest string of current shape to lowest string of next shape
+        const fromNote = fromNotes[fromNotes.length - 1];
+        const toNote = toNotes[0];
+
+        const fromIdx = fromNote.stringIndex !== undefined ? fromNote.stringIndex : fromNote.localStringIndex;
+        const toIdx = toNote.stringIndex !== undefined ? toNote.stringIndex : toNote.localStringIndex;
+
+        const fromX = fbLeft + fromIdx * stringSpacing;
+        const fromY = fbTop + (fromNote.fret - 0.5) * fretHeight;
+        const toX = fbLeft + toIdx * stringSpacing;
+        const toY = fbTop + (toNote.fret - 0.5) * fretHeight;
+
+        if (fromNote.fret <= numFrets && toNote.fret <= numFrets && fromNote.fret > 0 && toNote.fret > 0) {
             svg += `<line x1="${fromX}" y1="${fromY}" x2="${toX}" y2="${toY}" stroke="#cc0000" stroke-width="3" marker-end="url(#arrowhead)"/>`;
 
-            // Label showing "5 frets"
-            const midX = (fromX + toX) / 2 - 25;
+            const midX = (fromX + toX) / 2 - 30;
             const midY = (fromY + toY) / 2;
-            svg += `<text x="${midX}" y="${midY}" font-size="10" font-weight="bold" fill="#cc0000">5 frets</text>`;
+            svg += `<text x="${midX}" y="${midY}" font-size="10" font-weight="bold" fill="#cc0000">${tuningInterval} frets</text>`;
         }
     }
 
-    // Add cycling indicator at bottom
-    if (visibleInversions.length > 0) {
+    // Cycling indicator
+    if (displayShapes.length > 0) {
         const bottomY = fbTop + numFrets * fretHeight + 10;
-        svg += `<text x="${fbLeft + 2.5 * stringSpacing}" y="${bottomY}" text-anchor="middle" font-size="11" fill="#666">↓ Inversions keep cycling ↓</text>`;
+        svg += `<text x="${fbLeft + (numStrings - 1) * stringSpacing / 2}" y="${bottomY}" text-anchor="middle" font-size="11" fill="#666">&#x2193; Inversions keep cycling &#x2193;</text>`;
     }
 
     return svg;
@@ -335,7 +349,7 @@ function generateFretboardSVG(tuningName) {
 
     // SVG dimensions
     const marginLeft = 100;
-    const marginRight = 310;  // Extra space for inversion annotation boxes (140px wide, positioned at fbRight+150)
+    const marginRight = 330;  // Extra space for inversion annotation boxes (160px wide, positioned at fbRight+150)
     const marginTop = capo > 0 ? 160 : 140;  // Extra space for effective tuning display
     const marginBottom = 80;
     const stringSpacing = 55;
@@ -615,8 +629,8 @@ function generateFretboardSVG(tuningName) {
         svg += `<text x="${fbLeft + fretboardWidth/2}" y="${capoY + 4}" text-anchor="middle" font-size="10" fill="white" font-weight="bold">CAPO ${capo}</text>`;
     }
 
-    // Chord inversions overlay (if enabled)
-    if (state.showInversions && numStrings >= 5) {
+    // Chord inversions overlay (if enabled) - supports both 4 and 5 string banjos
+    if (state.showInversions) {
         svg = renderInversionsOnFretboard(svg, state.inversionRootNote, tuning, fbLeft, fbTop, stringSpacing, fretHeight, numFrets, svgWidth);
     }
 

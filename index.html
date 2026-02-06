@@ -69,6 +69,7 @@
             <button class="tab" data-tab="fretboards">Fretboards</button>
             <button class="tab" data-tab="chords">Chords</button>
             <button class="tab" data-tab="reference">Reference</button>
+            <button class="tab" data-tab="tests">Tests</button>
         </div>
 
         <!-- Tunings Tab -->
@@ -88,24 +89,28 @@
         <!-- Fretboards Tab -->
         <div id="fretboards-tab" class="tab-content">
             <div class="reference-box no-print">
-                <strong>FRETBOARD NOTE CHARTS:</strong>
-                Select a tuning from the list to view its complete fretboard diagram with notes at every fret position.<br>
-                5th string starts at fret 6 (shown with diagonal neck edge and peg indicator).<br>
-                Fret markers: &#9679; at frets 3, 7, 10, 15, 17 | &#9733; at fret 5 | &#9679;&#9679; at fret 12<br>
-                Notes above the capo are grayed out to indicate they are not playable.
+                <strong>FRETBOARD NOTE CHARTS &amp; INVERSIONS:</strong>
+                Select a tuning, then choose a chord quality (Major, Dom 7th, Maj 7th, Min 7th) to visualize inversions.<br>
+                <strong>Colors:</strong> Blue = Root Form | Red = 1st Inv | Yellow = 2nd Inv | Green = 3rd Inv<br>
+                <strong>Shapes:</strong> Triangle = Root/1st | Rectangle = 2nd | Diamond = 3rd<br>
+                Toggle between Full Chords and Partials/Dyads. Use filter checkboxes to isolate specific inversions.<br>
+                Connector arrows show the dynamic fret distance between shapes based on the tuning interval.
             </div>
 
-            <!-- Chord Inversions Controls -->
+            <!-- Chord Inversions Controls (Universal Generator) -->
             <div class="chord-controls no-print" id="inversionControls">
                 <div class="chord-control-group">
-                    <label>Show Inversions</label>
+                    <label>Chord Quality</label>
                     <div class="chord-type-buttons" id="inversionTypeButtons">
-                        <button class="chord-type-btn" data-type="major">Major</button>
+                        <button class="chord-type-btn" data-family="MAJOR">Major</button>
+                        <button class="chord-type-btn" data-family="DOM7">Dom 7th</button>
+                        <button class="chord-type-btn" data-family="MAJ7">Maj 7th</button>
+                        <button class="chord-type-btn" data-family="MIN7">Min 7th</button>
                     </div>
                 </div>
 
                 <div class="chord-control-group" id="inversionKeyContainer" style="display: none;">
-                    <label>Key</label>
+                    <label>Root Note</label>
                     <div class="key-buttons" id="inversionKeyButtons">
                         <button class="key-btn" data-key="C">C</button>
                         <button class="key-btn" data-key="C#">C#</button>
@@ -119,6 +124,45 @@
                         <button class="key-btn" data-key="A">A</button>
                         <button class="key-btn" data-key="A#">A#</button>
                         <button class="key-btn" data-key="B">B</button>
+                    </div>
+                </div>
+
+                <div class="inversion-options-row" id="inversionOptionsContainer" style="display: none;">
+                    <div class="chord-control-group">
+                        <label>Voicing Mode</label>
+                        <div class="voicing-mode-buttons" id="voicingModeButtons">
+                            <button class="voicing-mode-btn active" data-mode="full">Full Chords</button>
+                            <button class="voicing-mode-btn" data-mode="partial">Partials / Dyads</button>
+                        </div>
+                    </div>
+
+                    <div class="chord-control-group">
+                        <label>Filter Inversions</label>
+                        <div class="inversion-filter-checks" id="inversionFilterChecks">
+                            <label class="inversion-check blue"><input type="checkbox" value="Root Form"> Root</label>
+                            <label class="inversion-check red"><input type="checkbox" value="1st Inversion"> 1st Inv</label>
+                            <label class="inversion-check yellow"><input type="checkbox" value="2nd Inversion"> 2nd Inv</label>
+                            <label class="inversion-check green"><input type="checkbox" value="3rd Inversion"> 3rd Inv</label>
+                        </div>
+                    </div>
+
+                    <div class="chord-control-group">
+                        <label>Playback</label>
+                        <div class="audio-controls">
+                            <div class="audio-mode-toggle">
+                                <label><input type="radio" name="audioPlayMode" value="arpeggio" checked> Arpeggio</label>
+                                <label><input type="radio" name="audioPlayMode" value="block"> Block</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chord-control-group">
+                        <label>Metronome</label>
+                        <div class="metronome-controls">
+                            <input type="number" id="metronomeBPM" min="40" max="200" value="80" class="bpm-input">
+                            <span class="bpm-label">BPM</span>
+                            <button id="metronomeToggle" class="btn btn-secondary metronome-btn">Start</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -334,6 +378,73 @@
                 &#11088; = Most common | &#9888; = Requires special consideration (string tension, setup)
             </div>
         </div>
+
+        <!-- Tests Tab -->
+        <div id="tests-tab" class="tab-content">
+            <div class="reference-box">
+                <strong>VALIDATION &amp; TESTS:</strong>
+                Run the built-in test suite to validate chord shape generation, inversion classification, and connector logic.
+                Tests verify the Universal Shape Generator against known chord theory.
+            </div>
+
+            <div class="test-controls no-print">
+                <button id="runTestsBtn" class="btn btn-primary">Run All Tests</button>
+            </div>
+
+            <div id="testResultsContainer" class="test-results-container">
+                <p class="test-placeholder">Click "Run All Tests" to validate the chord inversion engine.</p>
+            </div>
+
+            <div class="reference-section">
+                <h3>Inversion Color Legend</h3>
+                <div class="inversion-legend">
+                    <div class="legend-item">
+                        <span class="legend-swatch" style="background: #3366cc;"></span>
+                        <strong>Root Form (Blue)</strong> — Bass note is the Root (1). Triangle overlay. "F Shape" alias.
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-swatch" style="background: #cc3333;"></span>
+                        <strong>1st Inversion (Red)</strong> — Bass note is the 3rd (or &#9837;3). Triangle overlay. "D Shape" alias.
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-swatch" style="background: #cc9900;"></span>
+                        <strong>2nd Inversion (Yellow)</strong> — Bass note is the 5th. Rectangle overlay. "Barre Shape" alias.
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-swatch" style="background: #339933;"></span>
+                        <strong>3rd Inversion (Green)</strong> — Bass note is the 7th (&#9837;7 or 7). Diamond overlay. 7th chords only.
+                    </div>
+                </div>
+            </div>
+
+            <div class="reference-section">
+                <h3>Test Case Schema (JSON)</h3>
+                <pre class="code-block">{
+  "test_id": "TC_001",
+  "description": "Verify F Major Root Form Logic in Standard G",
+  "setup": {
+    "tuning_id": "Open G",
+    "root_note": "F",
+    "chord_quality": "MAJOR"
+  },
+  "expectations": {
+    "classification": {
+      "shape_name": "Root Form",
+      "expected_color": "Blue",
+      "bass_interval": 1
+    },
+    "voicing": {
+      "frets": [3, 2, 1, 3],
+      "intervals": [1, 3, 5, 1]
+    },
+    "movable_logic": {
+      "base_shape_alias": "F Shape",
+      "fret_offset": 0
+    }
+  }
+}</pre>
+            </div>
+        </div>
     </div>
 
 
@@ -341,7 +452,10 @@
     <script src="js/utils.js"></script>
     <script src="js/tunings.js"></script>
     <script src="js/chords.js"></script>
+    <script src="js/inversions.js"></script>
+    <script src="js/audio.js"></script>
     <script src="js/fretboard.js"></script>
+    <script src="js/tests.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
