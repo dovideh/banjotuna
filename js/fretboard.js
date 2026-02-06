@@ -212,6 +212,8 @@ function calculateMajorInversions(rootNote, tuningStrings, maxFret = 15) {
 function renderInversionsOnFretboard(svg, rootNote, tuning, fbLeft, fbTop, stringSpacing, fretHeight, numFrets, svgWidth) {
     const inversions = calculateMajorInversions(rootNote, tuning.strings, numFrets);
     const displayedNote = displayNote(rootNote);
+    const numStrings = tuning.strings.length;
+    const fbRight = fbLeft + (numStrings - 1) * stringSpacing;
 
     // Filter inversions that are fully visible
     const visibleInversions = inversions.filter(inv => {
@@ -246,8 +248,8 @@ function renderInversionsOnFretboard(svg, rootNote, tuning, fbLeft, fbTop, strin
             }
         });
 
-        // Annotation box on the right side
-        const annotationX = fbLeft + 5 * stringSpacing + 30;
+        // Annotation box on the right side (past fret labels and symbols)
+        const annotationX = fbRight + 150;
         const annotationY = fbTop + (inv.baseFret - 0.5) * fretHeight;
 
         if (inv.baseFret <= numFrets - 2) {
@@ -333,7 +335,7 @@ function generateFretboardSVG(tuningName) {
 
     // SVG dimensions
     const marginLeft = 100;
-    const marginRight = 250;  // Extra space for inversion annotation boxes (140px wide)
+    const marginRight = 310;  // Extra space for inversion annotation boxes (140px wide, positioned at fbRight+150)
     const marginTop = capo > 0 ? 160 : 140;  // Extra space for effective tuning display
     const marginBottom = 80;
     const stringSpacing = 55;
