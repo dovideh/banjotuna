@@ -1,9 +1,30 @@
 Available at https://dovideh.github.io/banjotuna/
 
 # Banjo Tuning Reference Web Application
-**Version 3.0**
+**Version 3.1**
 
-## Version 3 Summary - Chord Grid View & Inversions
+## Version 3.1 Summary - Code Modularization & UI Improvements
+
+### Code Refactoring
+- Split monolithic index.html (3,363 lines) into modular files:
+  - `css/styles.css` - All styling (1,112 lines)
+  - `js/utils.js` - Chromatic scale and note utilities
+  - `js/tunings.js` - Tuning data for all 24 tunings
+  - `js/chords.js` - Chord voicing algorithm and diagram generation
+  - `js/fretboard.js` - Fretboard SVG rendering and inversions
+  - `js/app.js` - State management and UI logic
+- index.html reduced to 343 lines (HTML structure only)
+- Still works with file:// protocol - no web server required
+
+### UI Improvements
+- Moved chord inversion controls to fretboard section
+- Button-row style UI for chord type selection (Major button)
+- Key selector buttons appear when chord type is active
+- Prepared for future Minor 7th and Major 7th chord types
+
+---
+
+## Version 3.0 Summary - Chord Grid View & Inversions
 
 ### New Feature: Chord Grid View
 - Toggle between individual chord display and grid view showing all keys × all chord types
@@ -144,7 +165,12 @@ A comprehensive, interactive web application for banjo players to explore tuning
 
 ## Version History
 
-### v3.0 (Current)
+### v3.1 (Current)
+- Code modularization: CSS and JS extracted to separate files
+- Moved inversion controls to fretboard section with button-row UI
+- Improved SVG layout for inversion annotation boxes
+
+### v3.0
 - Chord grid view with all keys × chord types
 - Chord inversions visualization on fretboard
 - 8-ball styling for natural notes
