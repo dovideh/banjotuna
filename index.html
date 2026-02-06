@@ -55,30 +55,6 @@
             </div>
 
             <div class="control-group">
-                <label>Chord Inversions</label>
-                <div class="checkbox-container">
-                    <input type="checkbox" id="showInversionsToggle">
-                    <span>Show inversions on fretboard</span>
-                </div>
-                <div style="margin-top: 8px;">
-                    <select id="inversionRootNote" style="width: 100%;">
-                        <option value="C">C Major</option>
-                        <option value="C#">C#/Db Major</option>
-                        <option value="D">D Major</option>
-                        <option value="D#">D#/Eb Major</option>
-                        <option value="E">E Major</option>
-                        <option value="F">F Major</option>
-                        <option value="F#">F#/Gb Major</option>
-                        <option value="G" selected>G Major</option>
-                        <option value="G#">G#/Ab Major</option>
-                        <option value="A">A Major</option>
-                        <option value="A#">A#/Bb Major</option>
-                        <option value="B">B Major</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="control-group">
                 <label>Actions</label>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn btn-primary" onclick="window.print()">Print / PDF</button>
@@ -117,6 +93,34 @@
                 5th string starts at fret 6 (shown with diagonal neck edge and peg indicator).<br>
                 Fret markers: &#9679; at frets 3, 7, 10, 15, 17 | &#9733; at fret 5 | &#9679;&#9679; at fret 12<br>
                 Notes above the capo are grayed out to indicate they are not playable.
+            </div>
+
+            <!-- Chord Inversions Controls -->
+            <div class="chord-controls no-print" id="inversionControls">
+                <div class="chord-control-group">
+                    <label>Show Inversions</label>
+                    <div class="chord-type-buttons" id="inversionTypeButtons">
+                        <button class="chord-type-btn" data-type="major">Major</button>
+                    </div>
+                </div>
+
+                <div class="chord-control-group" id="inversionKeyContainer" style="display: none;">
+                    <label>Key</label>
+                    <div class="key-buttons" id="inversionKeyButtons">
+                        <button class="key-btn" data-key="C">C</button>
+                        <button class="key-btn" data-key="C#">C#</button>
+                        <button class="key-btn" data-key="D">D</button>
+                        <button class="key-btn" data-key="D#">D#</button>
+                        <button class="key-btn" data-key="E">E</button>
+                        <button class="key-btn" data-key="F">F</button>
+                        <button class="key-btn" data-key="F#">F#</button>
+                        <button class="key-btn active" data-key="G">G</button>
+                        <button class="key-btn" data-key="G#">G#</button>
+                        <button class="key-btn" data-key="A">A</button>
+                        <button class="key-btn" data-key="A#">A#</button>
+                        <button class="key-btn" data-key="B">B</button>
+                    </div>
+                </div>
             </div>
 
             <div class="fretboard-layout">

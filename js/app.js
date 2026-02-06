@@ -14,6 +14,7 @@ let state = {
     // Chord inversion state
     showInversions: false,
     inversionRootNote: 'G',
+    inversionChordType: 'major',
     // Chord tab state
     chordTuning: 'Open G',
     chordKey: 'G',
@@ -154,17 +155,37 @@ function setupEventListeners() {
         populateTuningList();
     });
 
-    // Chord inversion controls
-    document.getElementById('showInversionsToggle').addEventListener('change', (e) => {
-        state.showInversions = e.target.checked;
-        saveState();
-        renderFretboard();
+    // Chord inversion controls (button-based in fretboard section)
+    document.querySelectorAll('#inversionTypeButtons .chord-type-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const type = e.target.dataset.type;
+            const isActive = e.target.classList.contains('active');
+
+            // Toggle the button
+            if (isActive) {
+                e.target.classList.remove('active');
+                state.showInversions = false;
+                document.getElementById('inversionKeyContainer').style.display = 'none';
+            } else {
+                e.target.classList.add('active');
+                state.showInversions = true;
+                state.inversionChordType = type;
+                document.getElementById('inversionKeyContainer').style.display = 'block';
+            }
+            saveState();
+            renderFretboard();
+        });
     });
 
-    document.getElementById('inversionRootNote').addEventListener('change', (e) => {
-        state.inversionRootNote = e.target.value;
-        saveState();
-        renderFretboard();
+    document.querySelectorAll('#inversionKeyButtons .key-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            // Remove active from all key buttons
+            document.querySelectorAll('#inversionKeyButtons .key-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            state.inversionRootNote = e.target.dataset.key;
+            saveState();
+            renderFretboard();
+        });
     });
 
     // Fretboard family filter
@@ -196,6 +217,7 @@ function resetSettings() {
         useSolfege: false,
         showInversions: false,
         inversionRootNote: 'G',
+        inversionChordType: 'major',
         chordTuning: 'Open G',
         chordKey: 'G',
         chordTypeFilter: 'all',
@@ -217,8 +239,23 @@ function applyStateToUI() {
     document.getElementById('showNotesToggle').checked = state.showNotes;
     document.getElementById('solfegeToggle').checked = state.useSolfege || false;
     document.getElementById('fretboardFamilyFilter').value = state.fretboardFamilyFilter || 'all';
-    document.getElementById('showInversionsToggle').checked = state.showInversions || false;
-    document.getElementById('inversionRootNote').value = state.inversionRootNote || 'G';
+
+    // Inversion controls (button-based)
+    const inversionTypeBtn = document.querySelector('#inversionTypeButtons .chord-type-btn[data-type="major"]');
+    if (inversionTypeBtn) {
+        if (state.showInversions) {
+            inversionTypeBtn.classList.add('active');
+            document.getElementById('inversionKeyContainer').style.display = 'block';
+        } else {
+            inversionTypeBtn.classList.remove('active');
+            document.getElementById('inversionKeyContainer').style.display = 'none';
+        }
+    }
+
+    // Set active key button
+    document.querySelectorAll('#inversionKeyButtons .key-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.key === (state.inversionRootNote || 'G'));
+    });
 
     // Chord tab UI
     const chordTuningSelect = document.getElementById('chordTuningSelect');
