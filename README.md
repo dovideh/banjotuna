@@ -1,8 +1,60 @@
 Available at https://dovideh.github.io/banjotuna/
 
 # Banjo Tuning Reference Web Application
-**Version 2.0**
-Version 2 Summary - Chord Diagram Generation
+**Version 3.1**
+
+## Version 3.1 Summary - Code Modularization & UI Improvements
+
+### Code Refactoring
+- Split monolithic index.html (3,363 lines) into modular files:
+  - `css/styles.css` - All styling (1,112 lines)
+  - `js/utils.js` - Chromatic scale and note utilities
+  - `js/tunings.js` - Tuning data for all 24 tunings
+  - `js/chords.js` - Chord voicing algorithm and diagram generation
+  - `js/fretboard.js` - Fretboard SVG rendering and inversions
+  - `js/app.js` - State management and UI logic
+- index.html reduced to 343 lines (HTML structure only)
+- Still works with file:// protocol - no web server required
+
+### UI Improvements
+- Moved chord inversion controls to fretboard section
+- Button-row style UI for chord type selection (Major button)
+- Key selector buttons appear when chord type is active
+- Prepared for future Minor 7th and Major 7th chord types
+
+---
+
+## Version 3.0 Summary - Chord Grid View & Inversions
+
+### New Feature: Chord Grid View
+- Toggle between individual chord display and grid view showing all keys × all chord types
+- Keys displayed on left side, chord types at top in organized groups
+- Chord type groupings with black separators: Major, Minor, Min7 | 6, 7 | Dim | Sus4 | Aug
+- Landscape print support with smart page breaks at F#/Gb
+- Table header repetition across pages
+
+### New Feature: Chord Inversions on Fretboard
+- Toggle to show chord inversions directly on fretboard diagram
+- Root note selector for any of the 12 keys
+- Color-coded inversion shapes:
+  - Root Form (blue): 1-3-5-1 interval pattern
+  - 1st Inversion (red): 3-5-1-3 interval pattern
+  - 2nd Inversion (yellow): 5-1-3-5 interval pattern
+- Annotation blocks showing chord name, inversion type, bass note, and intervals
+- 5-fret rule connector arrows between consecutive inversions
+- Cycling indicator at bottom of fretboard
+
+### Visual Enhancements
+- 8-ball styling for natural notes (C, D, E, F, G, A, B) on fretboard
+- Extended 5th fret line to left edge on fretboard diagram
+- Capo effective tuning display showing transposed notes
+
+### Bug Fixes
+- Fixed octave notation for all tunings - 1st string correctly set to octave 4
+
+---
+
+## Version 2 Summary - Chord Diagram Generation
 New Feature: Chord Diagrams Tab
 Added a comprehensive chord diagram generator to the banjo tuning reference application.
 
@@ -113,7 +165,25 @@ A comprehensive, interactive web application for banjo players to explore tuning
 
 ## Version History
 
-### v1.0 (Current)
+### v3.1 (Current)
+- Code modularization: CSS and JS extracted to separate files
+- Moved inversion controls to fretboard section with button-row UI
+- Improved SVG layout for inversion annotation boxes
+
+### v3.0
+- Chord grid view with all keys × chord types
+- Chord inversions visualization on fretboard
+- 8-ball styling for natural notes
+- Capo effective tuning display
+- Landscape print support with smart page breaks
+- Fixed octave notation for all tunings
+
+### v2.0
+- Chord diagram generator with 8 chord types per key
+- Finger notation options (numeric and PIMA)
+- Recursive backtracking algorithm for chord voicings
+
+### v1.0
 - Initial release with 24 tunings
 - Interactive fretboard SVG generator
 - Solfege notation support
@@ -125,11 +195,10 @@ A comprehensive, interactive web application for banjo players to explore tuning
 
 ## Future Enhancements (Planned)
 
-- Chord generation module with finger positions
-- Fingering notation system (T, I, M, R)
-- Multi-page document generator with pagination
 - Audio playback for tuning reference
 - Custom tuning creator
+- Additional chord types (9ths, 11ths, etc.)
+- Scale pattern overlays on fretboard
 
 ---
 
